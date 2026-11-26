@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2 — 2026-11-27 — greener bar, paper texture
+
+- Top bar is now a forest-to-teal-green gradient (`--bar-grad`); the flat blue read as corporate.
+  The accent (selected tab, selection, links, buttons) moved from blue to teal-green. Blue stays as
+  the first branch hue on the cards, and yellow (`--sun`) stays for the primary button and highlights.
+- Faint paper-grain texture (`--texture`) on the page background and top bar: inline SVG fractal
+  noise in a data URI, so no image files and still offline. Separate light/dark variants. The tree
+  canvas is now transparent, so the grain sits still behind the tree while panning.
+- Screenshots: `review/after-green-texture/` (local, git-ignored).
+
 ## 0.2.1 — 2026-11-27 — blue / yellow palette
 
 - Replaced the all-green palette: deep blue top bar, warm yellow (`--sun`) primary button, leaf
