@@ -1,24 +1,24 @@
-/* Genealogy Tool — "botanical" theme, blue / yellow palette.
+/* Genealogy Tool — "botanical" theme, green / yellow / blue palette, paper texture.
    Colour carries meaning: --br0…--br7 are family-branch hues (see infer.js I.branches);
    --bn is "no branch" (married in, parents not recorded). Sex is a glyph, not a colour. */
 :root {
-  --bg: #f4f2ea;
-  --surface: #fdfcf8;
-  --surface-2: #ece8da;
-  --line: #dad4c2;
-  --text: #1c2533;
-  --muted: #5f6879;
-  --accent: #2f6596;
+  --bg: #f1f2e8;
+  --surface: #fdfdf8;
+  --surface-2: #e8ebdd;
+  --line: #d5dacb;
+  --text: #1c2a24;
+  --muted: #5d6b64;
+  --accent: #2b6f5f;
   --accent-ink: #ffffff;
-  --accent-soft: #dce8f4;
+  --accent-soft: #d8eadf;
   --sun: #f2cb55;
   --sun-ink: #3a2c05;
-  --bar: #24476e;
-  --bar-ink: #f1f5fa;
-  --bar-muted: #b8cbe0;
+  --bar: #295a49;
+  --bar-ink: #f0f6f1;
+  --bar-muted: #bfd6c8;
   --danger: #b4442f;
   --warn-bg: #fbefc8;
-  --edge: #8590a0;
+  --edge: #7f8f88;
   --parallel: #c06a35;
   --other: #8a6aa8;
   --band: rgba(222, 190, 90, .10);
@@ -29,35 +29,41 @@
   --radius: 14px;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --bar-grad: linear-gradient(100deg, #2c5b41 0%, #295c50 55%, #285a5c 100%);
+  --texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32 0 0 0 0 0.3 0 0 0 0 0.18 0.42 0 0 0 -0.16'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23n)'/%3E%3C/svg%3E");
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #12161d; --surface: #1a202a; --surface-2: #222a36; --line: #313b4a; --text: #e6eaf0; --muted: #9ba7b8;
-    --accent: #8ab8e8; --accent-ink: #0d1726; --accent-soft: #1f3046; --sun: #f0c95a; --sun-ink: #2d2204;
-    --bar: #172741; --bar-ink: #e9eff7; --bar-muted: #9fb4cf;
-    --danger: #ef8a72; --warn-bg: #3a321b; --edge: #7f8a9b; --parallel: #e8995f; --other: #b99ad6; --band: rgba(240, 205, 110, .045);
+    --bg: #121815; --surface: #19211e; --surface-2: #212b27; --line: #2f3c37; --text: #e5ede8; --muted: #9cada4;
+    --accent: #7fc4ae; --accent-ink: #0c1a15; --accent-soft: #1d3a31; --sun: #f0c95a; --sun-ink: #2d2204;
+    --bar: #183329; --bar-ink: #e6f1ea; --bar-muted: #9db8a8;
+    --danger: #ef8a72; --warn-bg: #3a321b; --edge: #7e8c86; --parallel: #e8995f; --other: #b99ad6; --band: rgba(240, 205, 110, .045);
     --br0: #79aee6; --br1: #e8c25a; --br2: #5bbac4; --br3: #e08a6f; --br4: #b190d0; --br5: #8cc77d; --br6: #9db5ee; --br7: #e08fa8;
     --bn: #646a73;
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .3);
+    --bar-grad: linear-gradient(100deg, #1b3526 0%, #183429 55%, #17323a 100%);
+    --texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.92 0 0 0 0 0.85 0.24 0 0 0 -0.09'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23n)'/%3E%3C/svg%3E");
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #12161d; --surface: #1a202a; --surface-2: #222a36; --line: #313b4a; --text: #e6eaf0; --muted: #9ba7b8;
-  --accent: #8ab8e8; --accent-ink: #0d1726; --accent-soft: #1f3046; --sun: #f0c95a; --sun-ink: #2d2204;
-  --bar: #172741; --bar-ink: #e9eff7; --bar-muted: #9fb4cf;
-  --danger: #ef8a72; --warn-bg: #3a321b; --edge: #7f8a9b; --parallel: #e8995f; --other: #b99ad6; --band: rgba(240, 205, 110, .045);
+  --bg: #121815; --surface: #19211e; --surface-2: #212b27; --line: #2f3c37; --text: #e5ede8; --muted: #9cada4;
+  --accent: #7fc4ae; --accent-ink: #0c1a15; --accent-soft: #1d3a31; --sun: #f0c95a; --sun-ink: #2d2204;
+  --bar: #183329; --bar-ink: #e6f1ea; --bar-muted: #9db8a8;
+  --danger: #ef8a72; --warn-bg: #3a321b; --edge: #7e8c86; --parallel: #e8995f; --other: #b99ad6; --band: rgba(240, 205, 110, .045);
   --br0: #79aee6; --br1: #e8c25a; --br2: #5bbac4; --br3: #e08a6f; --br4: #b190d0; --br5: #8cc77d; --br6: #9db5ee; --br7: #e08fa8;
   --bn: #646a73;
   --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .3);
+  --bar-grad: linear-gradient(100deg, #1b3526 0%, #183429 55%, #17323a 100%);
+  --texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.92 0 0 0 0 0.85 0.24 0 0 0 -0.09'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23n)'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
-  margin: 0; background: var(--bg); color: var(--text);
+  margin: 0; background: var(--bg) var(--texture); color: var(--text);
   font: 14px/1.45 var(--sans);
   display: flex; flex-direction: column; overflow: hidden;
 }
@@ -70,7 +76,7 @@ h2 { font-family: var(--serif); font-weight: 600; }
 .topbar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
   padding: 9px 16px; background: var(--bar); color: var(--bar-ink);
-  background-image: radial-gradient(120% 180% at 0% 0%, rgba(255,255,255,.08), transparent 60%);
+  background-image: radial-gradient(120% 180% at 0% 0%, rgba(255,255,255,.09), transparent 60%), var(--texture), var(--bar-grad);
 }
 .brand { display: flex; align-items: center; gap: 9px; font: 600 18px/1 var(--serif); letter-spacing: .01em; }
 .brand svg { width: 26px; height: 26px; }
@@ -143,7 +149,7 @@ textarea { width: 100%; min-height: 60px; resize: vertical; }
 .treebar input[type=checkbox], .check input { accent-color: var(--accent); }
 .treebar .spacer { flex: 1; }
 .treebar .focusname { font: 600 15px var(--serif); color: var(--text); }
-svg.tree { flex: 1; width: 100%; min-height: 0; touch-action: none; cursor: grab; display: block; background: var(--bg); }
+svg.tree { flex: 1; width: 100%; min-height: 0; touch-action: none; cursor: grab; display: block; background: transparent; }
 svg.tree.panning { cursor: grabbing; }
 .zoomctl { position: absolute; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
 .zoomctl .btn { width: 36px; height: 36px; padding: 0; box-shadow: var(--shadow); font-size: 16px; }
