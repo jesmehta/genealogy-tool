@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Genealogy Tool</title>
+  <meta name="description" content="A local-first family tree builder: people, parent links, unions and inferred relationships, with JSON / ZIP export.">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="18" r="2.6"/><path d="M12 7.6V12M5 15.4V12h14v3.4"/></svg>
+      <span>Genealogy Tool</span>
+    </div>
+    <div class="project">
+      <label class="sr" for="projectSelect">Family project</label>
+      <select id="projectSelect" title="Switch family project"></select>
+      <button class="btn ghost" id="projectMenuBtn" aria-haspopup="menu" title="Project actions">⋯</button>
+      <div class="menu" id="projectMenu" role="menu" hidden>
+        <button role="menuitem" data-act="new">New family project…</button>
+        <button role="menuitem" data-act="rename">Rename project…</button>
+        <button role="menuitem" data-act="notes">Project notes…</button>
+        <button role="menuitem" data-act="sample">Load sample family</button>
+        <hr>
+        <button role="menuitem" data-act="delete" class="danger">Delete this project…</button>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-view="tree">Focus tree</button>
+      <button role="tab" data-view="graph">Whole family</button>
+      <button role="tab" data-view="list">People</button>
+      <button role="tab" data-view="relate">Relationship finder</button>
+    </nav>
+    <div class="io">
+      <span class="savestate" id="saveState" aria-live="polite"></span>
+      <button class="btn" id="importBtn" title="Import a .json or .zip project">Import</button>
+      <button class="btn" id="exportJsonBtn" title="Data only">Export JSON</button>
+      <button class="btn primary" id="exportZipBtn" title="Data + photos">Export ZIP</button>
+      <input type="file" id="importFile" accept=".json,.zip,application/json,application/zip" hidden>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="view" id="view"></section>
+    <aside class="panel" id="panel" hidden aria-label="Person details"></aside>
+  </main>
+
+  <dialog id="dialog"></dialog>
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script src="js/util.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/infer.js"></script>
+  <script src="js/zip.js"></script>
+  <script src="js/io.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
