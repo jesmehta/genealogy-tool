@@ -32,6 +32,10 @@
   the neighbour's children their cousins. "Raised together" siblings are listed separately.
 - **Partner rows:** a person with 3+ partners gets an arc for partners who can't sit next to them,
   with a bracket under both for their children. Very dense intermarriage can still cross lines.
+- **Branch colours can shift.** Hues are assigned by founding order. Adding an earlier founding
+  family, or crossing the 75% "split into children's lines" threshold, re-colours existing branches.
+  More than 8 branches reuse hues. (Possible to-do: let the user pin a colour per branch.)
+- **`color-mix()`** drives the card tints, so very old browsers (pre-2023) show untinted cards.
 - **No ES modules on purpose.** Converting to `type="module"` breaks opening the page from disk.
 - Scripts must load in the order given in `index.html` (each extends `window.GT`).
 - `review/` holds local test screenshots and is git-ignored.

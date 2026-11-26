@@ -85,6 +85,18 @@ layout doesn't know about couples. The engine (`layout.js`):
 The focus tree uses the same engine on a subset: ancestors up to N, descendants down to M, the
 focus person's siblings, descendants' partners, and optionally ancestors' other partners.
 
+**Colour means family branch.** (Chosen over surname or sex; theme direction "botanical" chosen
+over "heirloom" and "bright modern".)
+A *founding family* is a set of kin parents with no kin parents of their own, together with their
+children. Its branch is the founders plus all kin descendants. People descended from several
+branches carry all of them: the card stripe is split, and the tint follows the earliest-founded
+branch (ordered by union start date, then the children's births). If one branch holds ≥ 75% of the
+branched people (6+), it is split into its children's lines ("Anil's line"…) and its founders stay
+neutral. Otherwise a tree under a single patriarch would be all one colour. Married-in people with
+no recorded parents are neutral until their parents are added. Surname colouring was rejected
+because married names and unrelated same-surname families mislead. Sex moved to a glyph so that
+colour can carry lineage.
+
 **No build step, no ES modules.**
 Plain `<script>` files that share a `window.GT` namespace, so the page works when opened directly
 from disk (module scripts are blocked on `file://`) as well as when hosted.
