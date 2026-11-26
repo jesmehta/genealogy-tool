@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 — 2026-11-27 — blue / yellow palette
+
+- Replaced the all-green palette: deep blue top bar, warm yellow (`--sun`) primary button, leaf
+  bullets and focus-card glow, blue accent for selection/links, cream background with faint yellow
+  generation bands, slate-grey connector lines. Branch hue `--br0` (the most common) is now blue
+  and green moved to `--br5`. Leaf brand mark recoloured yellow and blue. Dark mode is navy-based.
+- Screenshots: `review/after-blue-yellow/` (local, git-ignored).
+
 ## 0.2.0 — 2026-11-27 — "botanical" look + family-branch colour
 
 - New theme: forest-green top bar with pill tabs, sage background, serif headings (system fonts
