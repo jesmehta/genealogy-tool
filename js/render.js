@@ -75,32 +75,54 @@
       }
     }
 
-    // people
+    // people — tinted by family branch (opt.branches), sex as a small glyph
+    const SEX_GLYPH = { F: '♀', M: '♂', X: '⚧' };
+    const brVar = (i) => `var(--br${i})`;
     for (const n of lay.nodes) {
       const p = prj.person(n.id);
-      const cls = ['node', 'sex-' + p.sex];
+      const brs = opt.branches ? opt.branches.of(n.id).map((i) => opt.branches.list[i].colour) : [];
+      const cls = ['node', brs.length ? 'branched' : 'unbranched'];
       if (prj.isDeceased(p)) cls.push('deceased');
       if (n.id === opt.focusId) cls.push('focus');
       if (n.id === opt.selectedId) cls.push('selected');
+      const style = brs.length ? ` style="--b:${brVar(brs[0])}"` : '';
       const thumb = p.photo && opt.thumbs.get(p.photo);
       const avatar = thumb
-        ? `<image href="${thumb}" x="10" y="10" width="44" height="44" clip-path="url(#gt-circle)" preserveAspectRatio="xMidYMid slice"/>`
-        : `<circle class="avatar" cx="32" cy="32" r="22"/><text class="initials" x="32" y="37">${U.esc(initials(p))}</text>`;
+        ? `<circle class="ring" cx="34" cy="32" r="24"/><image href="${thumb}" x="12" y="10" width="44" height="44" clip-path="url(#gt-circle)" preserveAspectRatio="xMidYMid slice"/>`
+        : `<circle class="ring" cx="34" cy="32" r="24"/><circle class="avatar" cx="34" cy="32" r="21.5"/><text class="initials" x="34" y="37">${U.esc(initials(p))}</text>`;
+      const shown = brs.slice(0, 3);
+      const segH = (H - 20) / Math.max(1, shown.length);
+      const stripe = shown.length
+        ? shown.map((c, i) => `<rect class="seg" x="0" y="${10 + i * segH}" width="5" height="${segH - (i < shown.length - 1 ? 2 : 0)}" rx="2" style="fill:${brVar(c)}"/>`).join('')
+        : `<rect class="seg none" x="0" y="10" width="5" height="${H - 20}" rx="2"/>`;
       const given = p.given || (p.surname ? '' : '(unnamed)');
       nodes.push(
-        `<g class="${cls.join(' ')}" data-id="${n.id}" transform="translate(${n.x},${n.y})" tabindex="0" role="button" aria-label="${U.esc(prj.displayName(p))}">` +
-        `<title>${U.esc(prj.displayName(p) + (prj.lifespan(p) ? ' (' + prj.lifespan(p) + ')' : ''))}</title>` +
-        `<rect class="box" width="${W}" height="${H}" rx="10"/><rect class="stripe" width="5" height="${H - 16}" x="0" y="8" rx="2"/>` +
-        avatar +
-        `<text class="nm" x="62" y="23">${U.esc(trunc(given, 15))}</text>` +
-        `<text class="sn" x="62" y="39">${U.esc(trunc(p.surname || '', 16))}</text>` +
-        `<text class="yr" x="62" y="55">${U.esc(trunc(prj.lifespan(p), 20))}</text>` +
+        `<g class="${cls.join(' ')}"${style} data-id="${n.id}" transform="translate(${n.x},${n.y})" tabindex="0" role="button" aria-label="${U.esc(prj.displayName(p))}">` +
+        `<title>${U.esc(prj.displayName(p) + (prj.lifespan(p) ? ' (' + prj.lifespan(p) + ')' : '') +
+          (brs.length ? '\n' + opt.branches.of(n.id).map((i) => opt.branches.list[i].label).join(' · ') : ''))}</title>` +
+        `<rect class="box" width="${W}" height="${H}" rx="14"/>` + stripe + avatar +
+        (SEX_GLYPH[p.sex] ? `<text class="sx" x="${W - 14}" y="20">${SEX_GLYPH[p.sex]}</text>` : '') +
+        `<text class="nm" x="66" y="24">${U.esc(trunc(given, 14))}</text>` +
+        `<text class="sn" x="66" y="40">${U.esc(trunc(p.surname || '', 16))}</text>` +
+        `<text class="yr" x="66" y="55">${U.esc(trunc(prj.lifespan(p), 19))}</text>` +
         `</g>`);
+    }
+
+    // generation bands (world coordinates, scroll with the tree)
+    const bands = [];
+    if (lay.rows) {
+      const x0 = -3000, w = lay.width + 6000;
+      for (let g = 0; g < lay.rows; g++) {
+        const top = lay.rowY(g) - L.VGAP / 2;
+        const label = opt.bandLabel ? opt.bandLabel(g) : 'Generation ' + (g + 1);
+        bands.push(`<rect class="band ${g % 2 ? 'odd' : 'even'}" x="${x0}" y="${top}" width="${w}" height="${H + L.VGAP}"/>` +
+          (label ? `<text class="bandlabel" x="12" y="${top + 20}">${U.esc(label)}</text>` : ''));
+      }
     }
 
     svg.innerHTML =
       `<defs><clipPath id="gt-circle" clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5"/></clipPath></defs>` +
-      `<g class="viewport"><g class="edges">${edges.join('')}</g><g class="marks">${marks.join('')}</g><g class="nodes">${nodes.join('')}</g></g>`;
+      `<g class="viewport"><g class="bands">${bands.join('')}</g><g class="edges">${edges.join('')}</g><g class="marks">${marks.join('')}</g><g class="nodes">${nodes.join('')}</g></g>`;
     return svg.querySelector('.viewport');
   };
 

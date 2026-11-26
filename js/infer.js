@@ -288,6 +288,71 @@
     return steps; // each step: "<from> is <rel> <to>"
   };
 
+  /* ---------- family branches (for colour) ----------
+     A branch starts at a "founding family": kin children whose recorded kin parents all have no
+     kin parents themselves. Members = the founders + all kin descendants of those children.
+     People descended from several branches belong to all of them (first = earliest founded).
+     If one branch covers ≥ 75% of branched people, it is split into its children's lines
+     (otherwise a single-patriarch tree would be one colour); its founders then stay neutral. */
+  I.BRANCH_COLOURS = 8;
+  I.branches = function (prj) {
+    const kinParents = (id) => prj.parentsOf(id).filter((l) => M.KIN_TYPES.has(l.type)).map((l) => l.parent);
+    const isRoot = (id) => kinParents(id).length === 0;
+    const order = new Map(prj.data.people.map((p, i) => [p.id, i]));
+    const fams = new Map();
+    for (const p of prj.data.people) {
+      const ps = kinParents(p.id);
+      if (!ps.length || !ps.every(isRoot)) continue;
+      const key = ps.slice().sort().join('+');
+      if (!fams.has(key)) fams.set(key, { founders: ps.slice().sort((a, b) => order.get(a) - order.get(b)), kids: [] });
+      fams.get(key).kids.push(p.id);
+    }
+    const famSort = (f) => {
+      const u = f.founders.length === 2 && prj.unionsBetween(f.founders[0], f.founders[1])[0];
+      const d = (u && U.dateSort(u.start.date)) ||
+        Math.min(...f.kids.map((k) => U.dateSort(prj.person(k).birth.date) || Infinity));
+      return isFinite(d) ? d : 1e12 + Math.min(...f.kids.map((k) => order.get(k)));
+    };
+    let seeds = [...fams.values()].sort((a, b) => famSort(a) - famSort(b))
+      .map((f) => ({ founders: f.founders, kids: f.kids, foundersIn: true }));
+
+    const kinDesc = (starts) => {
+      const seen = new Set(starts), st = starts.slice();
+      while (st.length) {
+        const c = st.pop();
+        for (const l of prj.childrenOf(c)) if (M.KIN_TYPES.has(l.type) && !seen.has(l.child)) { seen.add(l.child); st.push(l.child); }
+      }
+      return seen;
+    };
+    const assign = () => {
+      const of = new Map();
+      seeds.forEach((s, i) => {
+        const members = kinDesc(s.kids);
+        if (s.foundersIn) s.founders.forEach((f) => members.add(f));
+        members.forEach((m) => { if (!of.has(m)) of.set(m, []); if (!of.get(m).includes(i)) of.get(m).push(i); });
+        s.size = members.size;
+      });
+      return of;
+    };
+    let of = assign();
+    const total = of.size;
+    const big = seeds.findIndex((s) => s.size >= 0.75 * total && s.kids.length >= 2);
+    if (big >= 0 && total >= 6) {
+      const s = seeds[big];
+      const kids = s.kids.slice().sort((a, b) => (U.dateSort(prj.person(a).birth.date) || 1e12) - (U.dateSort(prj.person(b).birth.date) || 1e12));
+      seeds.splice(big, 1, ...kids.map((k) => ({ founders: [k], kids: [k], foundersIn: false, line: true })));
+      of = assign();
+    }
+    const list = seeds.map((s, i) => ({
+      idx: i,
+      colour: i % I.BRANCH_COLOURS,
+      label: s.line ? prj.displayName(s.kids[0]) + '’s line'
+        : s.founders.map((f) => prj.person(f).given || prj.displayName(f)).join(' & ') + (prj.person(s.founders[0]).surname ? ' ' + prj.person(s.founders[0]).surname : ''),
+      size: s.size,
+    }));
+    return { list, of: (id) => of.get(id) || [] };
+  };
+
   /* ---------- grouped relatives for the person panel ---------- */
   I.relatives = function (prj, id) {
     const groups = [];

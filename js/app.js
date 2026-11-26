@@ -17,6 +17,17 @@
     relate: { a: null, b: null, bioOnly: false },
   });
 
+  /* Branch colouring, recomputed only when the project index is rebuilt (i.e. after a change). */
+  app.br = () => {
+    const idx = app.prj.idx;
+    if (app._brIdx !== idx) { app._brIdx = idx; app._br = I.branches(app.prj); }
+    return app._br;
+  };
+  app.branchDot = (id) => {
+    const b = app.br().of(id);
+    return `<span class="dot"${b.length ? ` style="background:var(--br${app.br().list[b[0]].colour})"` : ''}></span>`;
+  };
+
   /* ---------- persistence ---------- */
   const saveState = (s) => { $('#saveState').textContent = s; };
   const save = U.debounce(async () => {
@@ -138,7 +149,14 @@
   }
 
   function emptyState() {
-    return `<div class="empty"><h2>${esc(app.prj.name)}</h2>` +
+    const sprig = `<svg class="sprig" viewBox="0 0 200 120" aria-hidden="true">` +
+      `<path class="stem" d="M100 116C100 80 98 52 100 14M100 70C82 58 66 54 46 56M100 52C118 40 136 36 156 40M100 92C116 84 130 82 146 86M100 34C90 26 80 22 68 22"/>` +
+      `<ellipse cx="46" cy="56" rx="14" ry="8" transform="rotate(-10 46 56)" style="fill:var(--br0)"/>` +
+      `<ellipse cx="156" cy="40" rx="14" ry="8" transform="rotate(12 156 40)" style="fill:var(--br2)"/>` +
+      `<ellipse cx="146" cy="86" rx="12" ry="7" transform="rotate(8 146 86)" style="fill:var(--br1)"/>` +
+      `<ellipse cx="68" cy="22" rx="12" ry="7" transform="rotate(-18 68 22)" style="fill:var(--br4)"/>` +
+      `<circle cx="100" cy="12" r="9" style="fill:var(--br3)"/></svg>`;
+    return `<div class="empty">${sprig}<h2>${esc(app.prj.name)}</h2>` +
       `<p>This family has nobody in it yet. Start with yourself or the oldest ancestor you know — every person gets two parent slots ready to fill, and partners, children and other bonds can be added from their card.</p>` +
       `<div class="actions"><button class="btn primary" data-act="add-person">Add the first person</button>` +
       `<button class="btn" data-act="sample">Load the sample family</button><button class="btn" data-act="import">Import a file</button></div>` +
@@ -200,12 +218,31 @@
     const lay = L.compute(prj, include);
     app.lay = lay;
     const svg = view.querySelector('svg.tree');
+    const br = app.br();
+    const fg = isTree && lay.pos.get(app.focusId) ? lay.pos.get(app.focusId).gen : null;
+    const focusGiven = isTree ? (prj.person(app.focusId).given || prj.displayName(app.focusId)) : '';
+    const UP = ['', 'Parents', 'Grandparents', 'Great-grandparents', 'Great-great-grandparents'];
+    const DOWN = ['', 'Children', 'Grandchildren', 'Great-grandchildren', 'Great-great-grandchildren'];
     const vp = R.draw(svg, prj, lay, {
       focusId: isTree ? app.focusId : null,
       selectedId: app.selectedId,
       thumbs: app.thumbs,
+      branches: br,
       showOthers: isTree ? app.treeOpts.others : app.graphOpts.others,
+      bandLabel: (g) => {
+        if (fg == null) return 'Generation ' + (g + 1);
+        const d = g - fg;
+        if (d === 0) return focusGiven + '’s generation';
+        return d < 0 ? (UP[-d] || -d + ' generations up') : (DOWN[d] || d + ' generations down');
+      },
     });
+    const bl = view.querySelector('.legend .branches');
+    if (bl) {
+      bl.innerHTML = br.list.length
+        ? br.list.map((b) => `<div class="row"><span class="dot" style="background:var(--br${b.colour})"></span>${esc(b.label)} <span class="hint">(${b.size})</span></div>`).join('') +
+          `<div class="row"><span class="dot"></span>No branch (married in, parents not recorded)</div>`
+        : '<p class="hint">Branches appear once children are linked to parents.</p>';
+    }
     app.pz.setViewport(vp);
     if (app.resetView) {
       app.resetView = false;
@@ -222,6 +259,7 @@
   function legendHTML() {
     const line = (cls, extra = '') => `<svg viewBox="0 0 34 10"><path class="${cls}" d="M2 5H32" ${extra}/></svg>`;
     return `<details class="legend"><summary>Legend</summary>` +
+      `<b class="lh">Family branches</b><div class="branches"></div><b class="lh">Lines</b>` +
       `<div class="row">${line('uline u-marriage')} Marriage / civil union</div>` +
       `<div class="row">${line('uline u-partnership')} Partners, not married</div>` +
       `<div class="row">${line('uline u-parallel')} Parallel / extramarital</div>` +
@@ -232,6 +270,7 @@
       `<div class="row">${line('drop pl-step')} Step / foster / raised by</div>` +
       `<div class="row">${line('oline')} Other relationship</div>` +
       `<div class="row"><svg viewBox="0 0 34 10"><rect x="2" y="1" width="30" height="8" rx="2" fill="none" stroke="currentColor" stroke-dasharray="4 2"/></svg> Deceased</div>` +
+      `<div class="row"><span style="width:34px;text-align:center">♀ ♂ ⚧</span> Sex (blank if unknown)</div>` +
       `<p class="hint">Click a person to edit · double-click to centre · click a partner line to edit the relationship · drag to pan · scroll / pinch to zoom.</p></details>`;
   }
 
@@ -259,7 +298,7 @@
       `<button class="btn primary" data-act="add-person">+ Add person</button></div>` +
       `<div class="tablewrap"><table class="people"><thead><tr>${th('name', 'Name')}${th('sur', 'Surname', 'hide-sm')}${th('birth', 'Born')}${th('death', 'Died', 'hide-sm')}` +
       `${th('parents', 'Parents', 'num hide-sm')}${th('partners', 'Partners', 'num hide-sm')}${th('kids', 'Children', 'num hide-sm')}</tr></thead><tbody>` +
-      rows.map((r) => `<tr data-id="${r.p.id}" class="${r.p.id === app.selectedId ? 'sel' : ''}"><td><span class="dot ${r.p.sex}"></span>${esc(r.name)}${r.p.otherNames ? ` <span class="hint">(${esc(r.p.otherNames)})</span>` : ''}</td>` +
+      rows.map((r) => `<tr data-id="${r.p.id}" class="${r.p.id === app.selectedId ? 'sel' : ''}"><td>${app.branchDot(r.p.id)}${esc(r.name)}${{ F: ' <span class="sx">♀</span>', M: ' <span class="sx">♂</span>', X: ' <span class="sx">⚧</span>' }[r.p.sex] || ''}${r.p.otherNames ? ` <span class="hint">(${esc(r.p.otherNames)})</span>` : ''}</td>` +
         `<td class="hide-sm">${esc(r.sur)}</td><td>${esc(r.p.birth.date)}</td><td class="hide-sm">${esc(r.p.death.date || (r.p.deceased ? '†' : ''))}</td>` +
         `<td class="num hide-sm">${r.parents}</td><td class="num hide-sm">${r.partners}</td><td class="num hide-sm">${r.kids}</td></tr>`).join('') +
       `</tbody></table></div><p class="hint">${rows.length} of ${prj.data.people.length} people · click a row to edit · double-click to centre the tree on them.</p></div>`;

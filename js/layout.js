@@ -283,6 +283,8 @@
 
     return {
       nodes, pos, slot, families: outFams,
+      rows: maxG + 1,
+      rowY: (g) => g * (L.H + L.VGAP) + pad,
       width: maxX - minX + pad * 2,
       height: (maxG + 1) * (L.H + L.VGAP) - L.VGAP + pad * 2,
     };

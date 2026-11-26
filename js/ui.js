@@ -116,7 +116,7 @@
           const hits = pool.filter((p) => !s || (prj.displayName(p) + ' ' + p.otherNames).toLowerCase().includes(s))
             .sort((a, b) => prj.displayName(a).localeCompare(prj.displayName(b))).slice(0, 60);
           list.innerHTML = hits.map((p) =>
-            `<button type="button" data-id="${p.id}" class="${p.id === picked ? 'on' : ''}"><span class="dot ${p.sex}"></span>${esc(prj.displayName(p))}<span class="meta">${esc(prj.lifespan(p))}</span></button>`).join('') +
+            `<button type="button" data-id="${p.id}" class="${p.id === picked ? 'on' : ''}">${app.branchDot(p.id)}${esc(prj.displayName(p))}<span class="meta">${esc(prj.lifespan(p))}</span></button>`).join('') +
             (s ? `<button type="button" data-new="1"><span class="new">+ New person “${esc(q.value.trim())}”</span></button>` : '') +
             (!hits.length && !s ? '<p class="hint" style="padding:8px">Nobody else yet.</p>' : '');
         };
@@ -360,10 +360,15 @@
     const thumb = p.photo && app.thumbs.get(p.photo);
     const detailsOpen = U.storageGet('detailsOpen', true);
     const h = [];
+    const br = app.br();
+    const myBr = br.of(id).map((i) => br.list[i]);
+    const headStyle = myBr.length ? ` style="--b:var(--br${myBr[0].colour})"` : '';
+    const chips = myBr.map((b) => `<span class="chip" style="--b:var(--br${b.colour})">${esc(b.label)}</span>`).join('');
 
-    h.push(`<div class="phead">` +
+    h.push(`<div class="phead${myBr.length ? ' branched' : ''}"${headStyle}>` +
       (thumb ? `<img class="photo" src="${thumb}" alt="" data-act="photo-view" style="cursor:zoom-in">` : `<div class="photo">${esc(((p.given || '?')[0] + (p.surname || ' ')[0]).trim().toUpperCase())}</div>`) +
-      `<div><h2 data-ph="name">${esc(prj.displayName(p))}</h2><div class="sub" data-ph="life">${esc(prj.lifespan(p))}</div></div>` +
+      `<div class="ptitle"><h2 data-ph="name">${esc(prj.displayName(p))}</h2><div class="sub" data-ph="life">${esc(prj.lifespan(p))}</div>` +
+      (chips ? `<div class="chips">${chips}</div>` : '') + `</div>` +
       `<button class="btn ghost x" data-act="close" title="Close" aria-label="Close panel">✕</button></div>`);
 
     h.push(`<div class="pactions">` +
@@ -372,7 +377,7 @@
       `<button class="btn small danger" data-act="delete">Delete</button></div>`);
 
     // details
-    h.push(`<details class="psec" ${detailsOpen ? 'open' : ''} data-act="details-toggle"><summary><h3 style="display:inline">Details</h3></summary><div class="grid2" style="margin-top:8px">` +
+    h.push(`<details class="psec" ${detailsOpen ? 'open' : ''} data-act="details-toggle"><summary><h3 style="margin:0">Details</h3></summary><div class="grid2" style="margin-top:8px">` +
       `<label class="field">Given name(s)<input data-field="given" value="${esc(p.given)}"></label>` +
       `<label class="field">Surname<input data-field="surname" value="${esc(p.surname)}"></label>` +
       `<label class="field">Other names (maiden, alias)<input data-field="otherNames" value="${esc(p.otherNames)}"></label>` +
@@ -417,7 +422,7 @@
       const kids = prj.childrenOfUnion(u);
       kids.forEach((k) => inUnion.add(k));
       const dates = [u.start.date && esc(u.start.date), (u.end.reason || u.end.date) && ('ended ' + esc([u.end.date, u.end.reason && M.label(M.END_REASONS, u.end.reason).toLowerCase()].filter(Boolean).join(', ')))].filter(Boolean).join(' · ');
-      return `<div class="union"><div class="uhead"><span class="tag">${esc(prj.unionOrderLabel(u, id) + M.label(M.UNION_TYPES, u.type).toLowerCase())}</span>` +
+      return `<div class="union u-${u.type}"><div class="uhead"><span class="tag u-${u.type}">${esc(prj.unionOrderLabel(u, id) + M.label(M.UNION_TYPES, u.type).toLowerCase())}</span>` +
         `${personLink(prj, other)}${lifespanMeta(prj, other)}</div>` +
         (dates ? `<div class="meta" style="font-size:12px;color:var(--muted)">${dates}</div>` : '') +
         `<div class="kids">` + (kids.length
@@ -446,7 +451,7 @@
     const sibs = I.siblings(prj, id);
     h.push(`<section class="psec"><h3>Siblings <span style="text-transform:none;letter-spacing:0;font-weight:400">(inferred)</span></h3>` +
       (sibs.length
-        ? sibs.map((s) => `<div class="rel"><div class="who">${personLink(prj, s.id)}${lifespanMeta(prj, s.id)}</div><span class="tag">${esc(I.SIB_LABEL[s.kind])}</span></div>`).join('')
+        ? sibs.map((s) => `<div class="rel"><div class="who">${personLink(prj, s.id)}${lifespanMeta(prj, s.id)}</div><span class="tag k-${s.kind}">${esc(I.SIB_LABEL[s.kind])}</span></div>`).join('')
         : '<p class="hint" style="margin:0">None — siblings appear automatically once parents are linked.</p>') + `</section>`);
 
     // other relationships
