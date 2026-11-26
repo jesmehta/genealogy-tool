@@ -1,0 +1,100 @@
+# Design and decisions
+
+## Data model (format `genealogy-tool`, version 1)
+
+```jsonc
+{
+  "format": "genealogy-tool", "version": 1, "exported": "ISO time (exports only)",
+  "project": { "id": "fam_…", "name": "…", "created": "…", "updated": "…", "notes": "…" },
+  "people": [{
+    "id": "p_…", "given": "", "surname": "", "otherNames": "", "sex": "F|M|X|U",
+    "birth": { "date": "c. 1920", "place": "" }, "death": { "date": "", "place": "" },
+    "deceased": false, "photo": "ph_…|null", "notes": "", "fields": [{ "k": "Occupation", "v": "…" }]
+  }],
+  "parentLinks": [{ "id": "pl_…", "parent": "p_…", "child": "p_…",
+    "type": "biological|adoptive|step|foster|guardian|raised|unknown", "unionId": "u_…|null", "notes": "" }],
+  "unions": [{ "id": "u_…", "a": "p_…", "b": "p_…",
+    "type": "marriage|civil|partnership|engagement|parallel|other",
+    "start": { "date": "", "place": "" }, "end": { "date": "", "reason": "|divorce|separation|annulment|death|other" },
+    "offspring": "unknown|yes|no", "notes": "" }],
+  "others": [{ "id": "o_…", "a": "p_…", "b": "p_…", "label": "godparent", "notes": "" }],
+  "photos": { "ph_…": { "name": "original filename.jpg", "type": "image/jpeg" } }
+}
+```
+
+In the ZIP, `photos/<photoId>.<ext>` holds the original image. In the browser, IndexedDB stores the
+original and a 160 px square JPEG thumbnail. The thumbnail is never exported; it is regenerated on import.
+
+## Key decisions
+
+**Only two structural relationships are stored; everything else is derived.**
+Siblings, cousins, in-laws and step-relations are computed from `parentLinks` + `unions` every
+time. Stored siblings would go stale the moment a parent link changes, and "half vs full" depends on
+which parents are recorded, which changes as research progresses.
+
+**Parent links are per parent, not per couple.**
+A child can have one recorded parent, two, or four (birth parents + adoptive parents), with or
+without any union between them. This is what makes "child of an unmarried couple", "raised by a
+neighbour, never formally adopted" and "single parent" work without special cases. `unionId` on a
+link is optional. It only says which partnership a child came from when the same two people have
+several unions. Untagged children of both partners are attributed to their first union.
+
+**"2nd / 3rd marriage" is computed, not stored.**
+Unions are sorted by start date. Numbering happens within a class: marriage-like (marriage, civil
+union) vs. everything else. A parallel relationship therefore doesn't make the next marriage the
+"3rd". Overlapping dates are allowed, which is how parallel relationships are represented.
+
+**Kinship vs. direct relationships.**
+Biological, adoptive and unknown links propagate kinship (cousins, aunts, nieces). Step, foster,
+guardian and raised-by links are shown as direct relationships ("foster mother") but don't create
+cousins etc. A **biological only** toggle in the finder drops adoption too.
+"Half-" in cousin and niece names is used when the closest common ancestor is a single person who
+has a recorded partner or children with someone else. If only one grandparent is recorded at all,
+the result is a plain cousin rather than a guessed half-cousin.
+
+**Fuzzy dates are free text with a parsed sort key.**
+Exact dates are rare in genealogy, so a date picker would force false precision. Day-first
+numeric dates (`14/05/1920`) are assumed. Unparseable text is kept and flagged in the form, but it
+is not sortable.
+
+**Storage: IndexedDB, autosave, no server.**
+Projects and photos live in this browser profile. Export is the only way data leaves. Each import
+asks before replacing a project with the same id. "Import as copy" gets a new id, so two machines
+can both keep their version.
+
+**ZIP: hand-written, no dependency.** (Chosen over JSZip from a CDN or a vendored copy.)
+The writer uses "store" (no compression), because photos are already compressed. The reader handles
+store + deflate through the browser's `DecompressionStream('deflate-raw')`, so ZIPs re-packed by
+Windows/macOS also import. A `data.json` inside a sub-folder is found too. ZIP64 (> 4 GB) isn't supported.
+
+**Layout: hand-written layered layout, no dagre/ELK.**
+The user chose to include a whole-family view in v1. A graph library was the first idea. It was
+dropped to keep the tool offline and dependency-free like the ZIP, and because a generic DAG
+layout doesn't know about couples. The engine (`layout.js`):
+1. Groups each child into a *family*: a union (tagged, or the parents' shared union) or a bare
+   parent pair / single parent. Links are grouped by type first, so a child with birth parents
+   and adoptive parents sits under two families.
+2. Assigns generations: children below parents, partners on the same row. Parent-less people
+   (married-in spouses' families, etc.) are pulled down next to their children.
+3. Treats each connected set of same-row partners as a rigid *block*. A person with three
+   partners becomes `[P2, Hub, P1, P3]`. Partners who can't sit side by side are joined by an arc,
+   and their children hang from a bracket under both boxes.
+4. Orders blocks with barycentre sweeps (down from parents, up from children) and positions them
+   with weighted isotonic regression (pool-adjacent-violators). That gives the closest positions to
+   the targets with no overlaps.
+The focus tree uses the same engine on a subset: ancestors up to N, descendants down to M, the
+focus person's siblings, descendants' partners, and optionally ancestors' other partners.
+
+**No build step, no ES modules.**
+Plain `<script>` files that share a `window.GT` namespace, so the page works when opened directly
+from disk (module scripts are blocked on `file://`) as well as when hosted.
+
+## Rejected or deferred
+
+| Option | Why not (yet) |
+|---|---|
+| dagre / ELK for the whole-family graph | needs a network/CDN or a vendored library; doesn't model couples; see above |
+| JSZip | the user picked the dependency-free option; `DecompressionStream` covers reading deflated zips |
+| GEDCOM import/export in v1 | deferred by the user. GEDCOM can't express parallel unions or informal raising cleanly, so it would be lossy. Tracked in TODO |
+| Storing siblings/cousins | goes stale; derived instead |
+| Strict date pickers | false precision for genealogical data |
