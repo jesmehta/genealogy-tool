@@ -35,6 +35,10 @@
 - **Branch colours can shift.** Hues are assigned by founding order. Adding an earlier founding
   family, or crossing the 75% "split into children's lines" threshold, re-colours existing branches.
   More than 8 branches reuse hues. (Possible to-do: let the user pin a colour per branch.)
+- **Theme colours live only in the `:root` blocks** at the top of `css/app.css`, in three copies:
+  light, dark under `prefers-color-scheme`, and the forced `[data-theme="dark"]`. Change all three
+  together. The texture strength is the last two numbers of the `feColorMatrix` alpha row inside
+  each `--texture` data URI (gain, bias).
 - **`color-mix()`** drives the card tints, so very old browsers (pre-2023) show untinted cards.
 - **No ES modules on purpose.** Converting to `type="module"` breaks opening the page from disk.
 - Scripts must load in the order given in `index.html` (each extends `window.GT`).

@@ -97,6 +97,20 @@ no recorded parents are neutral until their parents are added. Surname colouring
 because married names and unrelated same-surname families mislead. Sex moved to a glyph so that
 colour can carry lineage.
 
+**Palette: green / yellow / blue, with a paper texture.** It took three iterations, all on 2026-11-27:
+1. *Botanical, all green* (0.2.0): forest bar, sage background, green accent. The verdict was "an
+   overload of green".
+2. *Blue / yellow* (0.2.1): navy bar, blue accent, yellow (`--sun`) primary button and highlights,
+   cream background. The blue bar read as "sterile / corporate".
+3. *Current* (0.2.2): forest-to-teal-green gradient bar, teal-green accent. Blue is kept as the
+   first branch hue on cards, and yellow is kept for the primary action, the focus glow and the
+   heading bullets. The aim is a mix of the three, with none dominating.
+
+The background texture is SVG fractal noise inlined as a data URI (`--texture`). Image files were
+avoided to keep the tool a self-contained offline folder. The noise alpha is deliberately low,
+because the first attempt was too strong. It sits on `body` and the top bar, and the tree `<svg>`
+is transparent, so the grain stays fixed while the tree pans.
+
 **No build step, no ES modules.**
 Plain `<script>` files that share a `window.GT` namespace, so the page works when opened directly
 from disk (module scripts are blocked on `file://`) as well as when hosted.
