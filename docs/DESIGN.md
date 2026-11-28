@@ -82,6 +82,18 @@ layout doesn't know about couples. The engine (`layout.js`):
 4. Orders blocks with barycentre sweeps (down from parents, up from children) and positions them
    with weighted isotonic regression (pool-adjacent-violators). That gives the closest positions to
    the targets with no overlaps.
+5. *Added in 0.5.1, after a real family showed one brother's children placed among another
+   brother's children:* generations keep **siblings on one row** and pull **every** parent down to
+   sit just above their children (not only people without recorded parents). When a marriage joins
+   a deeper family, the joining family moves down a row in step instead of stretching across rows.
+   After the sweeps, a final **top-down pass orders each row by its parents' family position**,
+   with siblings by age, so descendant groups never interleave. Three more rules apply:
+   - unconnected groups stay side by side, largest first;
+   - a "raised by" or step link doesn't pull someone away from their birth family;
+   - a couple whose partners come from two families joins the family it is nearer to, at the end
+     facing the other one.
+   Measured on the 154-person test family, children placed inside another family's group dropped
+   from 24 to 6 in the whole-family view, and to 0 in every "Descendants of" view.
 The focus tree uses the same engine on a subset: ancestors up to N, descendants down to M, the
 focus person's siblings, descendants' partners, and optionally ancestors' other partners.
 

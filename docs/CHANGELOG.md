@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.1 — 2026-11-28 — family groups no longer interleave
+
+- A final top-down layout pass orders each row by the parents' position, so one family's children
+  (and their descendants) no longer sit among another family's.
+- Siblings always share a row, and parents are pulled down to sit just above their children. A
+  family that marries into a deeper family moves down a row in step, with no long lines and no
+  split sibling rows.
+- Unconnected groups stay side by side. "Raised by" and step links don't drag someone away from
+  their birth family. Couples from two families sit at the edge of one, facing the other.
+- Screenshots (local, git-ignored): `review/after-spacing2/`.
+
 ## 0.5.0 — 2026-11-28 — quick editing on the tree
 
 - **+** on every card (hover / selected): Parent · Child · Partner · Sibling · Cousin · Other bond ·

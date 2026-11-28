@@ -43,6 +43,12 @@
   ancestor recorded alone gives a plain "first cousin", even if the true answer is half.
 - **Step/foster/raised links don't propagate kinship.** Someone raised by a neighbour doesn't make
   the neighbour's children their cousins. "Raised together" siblings are listed separately.
+- **Three or more trees joined by marriages** can't all sit side by side on single rows. A person
+  who married into another tree sits at that tree's edge, so in the whole-family view they can end
+  up apart from a sibling who stays with the birth family. "Descendants of" views don't have this
+  problem.
+- **Generations shift as families are joined.** Siblings share a row and parents sit just above
+  their children, so linking a deeper family can move a whole connected family down a row.
 - **Partner rows:** a person with 3+ partners gets an arc for partners who can't sit next to them,
   with a bracket under both for their children. Very dense intermarriage can still cross lines.
 - **Branch colours can shift.** Hues are assigned by founding order. Adding an earlier founding
