@@ -247,13 +247,17 @@
         for (const f of famList) {
           const pg = Math.max(...f.parents.map((p) => gen.get(p)));
           for (const p of f.parents) if (gen.get(p) < pg) { gen.set(p, pg); ch = true; }
-          for (const c of f.children) if (gen.get(c.id) < pg + 1) { gen.set(c.id, pg + 1); ch = true; }
+          // siblings share a row: if one is pushed down (e.g. by marrying into a deeper family),
+          // the rest of the family follows instead of the family stretching across rows
+          const cg = f.children.length ? Math.max(pg + 1, ...f.children.map((c) => gen.get(c.id))) : 0;
+          for (const c of f.children) if (gen.get(c.id) < cg) { gen.set(c.id, cg); ch = true; }
         }
         if (!ch) break;
       }
+      // pull parents down to sit just above their children (everyone, not only people without
+      // recorded parents; the sibling rule above then brings their brothers and sisters along)
       let pulled = false;
       for (const p of people) {
-        if (famsAsChild.has(p)) continue;
         const kids = (famsAsParent.get(p) || []).flatMap((f) => f.children.map((c) => gen.get(c.id)));
         if (!kids.length) continue;
         const target = Math.min(...kids) - 1;
@@ -397,6 +401,56 @@
       blocksByLayer[i].forEach((b) => { b.x = Math.max(b.x, x); x = b.x + blockW(b) + L.BGAP; });
       refresh(i);
     });
+    // final top-down pass: order every row by where its parents' families sit (then siblings by
+    // age), so one family's descendants never interleave with another's. The upward sweeps above
+    // optimise for children's positions and can slide a cousin group between two siblings.
+    // groups that aren't connected at all (separate families on one board) stay side by side,
+    // largest first, instead of being sorted in among each other
+    const compOf = new Map();
+    {
+      const root = (x) => { while (compOf.get(x) !== x) { compOf.set(x, compOf.get(compOf.get(x))); x = compOf.get(x); } return x; };
+      people.forEach((p) => compOf.set(p, p));
+      const join = (a, b) => { const ra = root(a), rb = root(b); if (ra !== rb) compOf.set(ra, rb); };
+      famList.forEach((f) => { const all = f.parents.concat(f.children.map((c) => c.id)); all.slice(1).forEach((x) => join(all[0], x)); });
+      people.forEach((p) => compOf.set(p, root(p)));
+    }
+    const compSize = new Map();
+    compOf.forEach((r) => compSize.set(r, (compSize.get(r) || 0) + 1));
+    const compRank = new Map([...compSize.keys()].sort((a, b) => compSize.get(b) - compSize.get(a) || order0.get(a) - order0.get(b)).map((r, i) => [r, i]));
+    for (let g = 0; g <= maxG; g++) {
+      const blocks = blocksByLayer[g];
+      if (g === 0) {
+        // roots: only group by component, keep the sweeps' order inside each group
+        const kd = blocks.map((b, i) => ({ b, i, c: compRank.get(compOf.get(b.members[0])) }));
+        kd.sort((p, q) => p.c - q.c || p.i - q.i);
+        blocks.splice(0, blocks.length, ...kd.map((e) => e.b));
+        placeLayer(0, desiredFromChildren, false, false);
+        continue;
+      }
+      // a person's own family: kin (birth/adoptive) families first, "raised by" etc. only if nothing else
+      const ownFams = (m) => {
+        const fs = famsAsChild.get(m) || [];
+        const kin = fs.filter((f) => f.children.some((c) => c.id === m && M.KIN_TYPES.has(c.type)));
+        return kin.length ? kin : fs;
+      };
+      const keyed = blocks.map((b, i) => {
+        const ks = [];
+        b.members.forEach((m) => ownFams(m).forEach((f) => ks.push({ x: famX(f), m })));
+        const c = compRank.get(compOf.get(b.members[0]));
+        if (!ks.length) return { b, i, c, k: b.x + blockW(b) / 2, s: Infinity };
+        const xs = [...new Set(ks.map((e) => e.x))];
+        if (xs.length === 1) return { b, i, c, k: xs[0], s: Math.min(...ks.map((e) => order0.get(e.m))) };
+        // a couple whose partners come from two families joins the family it already sits nearer
+        // to, at the end facing the other family, so it never lands inside a third family's group
+        const here = b.x + blockW(b) / 2;
+        const own = xs.slice().sort((p, q) => Math.abs(p - here) - Math.abs(q - here))[0];
+        const other = xs.filter((x) => x !== own).reduce((s, x) => s + x, 0) / (xs.length - 1);
+        return { b, i, c, k: own, s: other > own ? Infinity : -Infinity };
+      });
+      keyed.sort((p, q) => p.c - q.c || p.k - q.k || p.s - q.s || p.i - q.i);
+      blocks.splice(0, blocks.length, ...keyed.map((e) => e.b));
+      placeLayer(g, desiredFromParents, false, false);
+    }
     for (let g = 1; g <= maxG; g++) placeLayer(g, desiredFromParents, false, false);
     for (let g = maxG - 1; g >= 0; g--) placeLayer(g, (b) => {
       // final gentle pass: only re-centre parents whose children are all in one family
