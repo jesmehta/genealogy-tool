@@ -9,7 +9,7 @@
    The same engine draws the focus (hourglass) view on a subset and the full family. */
 (function (GT) {
   'use strict';
-  const M = GT.model;
+  const M = GT.model, U = GT.util;
   const L = (GT.layout = {});
 
   L.W = 176;      // node box
@@ -186,6 +186,17 @@
       }
     }
     const famList = [...fams.values()];
+
+    /* siblings by age: within each family, dated children take the dated children's slots in
+       birth order; undated children keep their entry position */
+    const born = (id) => U.dateSort(prj.person(id).birth.date);
+    for (const f of famList) {
+      const dated = f.children.map((c) => c.id).filter((id) => born(id) != null);
+      if (dated.length < 2) continue;
+      const slots = dated.map((id) => order0.get(id)).sort((a, b) => a - b);
+      dated.slice().sort((a, b) => born(a) - born(b) || order0.get(a) - order0.get(b))
+        .forEach((id, i) => order0.set(id, slots[i]));
+    }
     const famsAsChild = new Map(), famsAsParent = new Map();
     const push = (m, k, v) => { if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
     famList.forEach((f) => {
@@ -330,6 +341,27 @@
       for (let g = 1; g <= maxG; g++) placeLayer(g, desiredFromParents, true, true);
       for (let g = maxG - 1; g >= 0; g--) placeLayer(g, desiredFromChildren, true, false);
     }
+    // the sweeps may have swapped siblings; put each family's sibling blocks back in age order
+    blocksByLayer.forEach((blocks) => {
+      const groups = new Map();
+      blocks.forEach((b, i) => {
+        const sibs = b.members.filter((m) => (famsAsChild.get(m) || []).length);
+        if (sibs.length !== 1) return;                 // married cousins etc.: leave alone
+        const f = famsAsChild.get(sibs[0])[0];
+        push(groups, f.key, { i, key: order0.get(sibs[0]) });
+      });
+      groups.forEach((g) => {
+        if (g.length < 2) return;
+        const slots = g.map((e) => e.i).sort((a, b) => a - b);
+        const picked = g.slice().sort((a, b) => a.key - b.key).map((e) => blocks[e.i]);
+        slots.forEach((si, k) => { blocks[si] = picked[k]; });
+      });
+    });
+    blocksByLayer.forEach((_, i) => {
+      let x = -Infinity;
+      blocksByLayer[i].forEach((b) => { b.x = Math.max(b.x, x); x = b.x + blockW(b) + L.BGAP; });
+      refresh(i);
+    });
     for (let g = 1; g <= maxG; g++) placeLayer(g, desiredFromParents, false, false);
     for (let g = maxG - 1; g >= 0; g--) placeLayer(g, (b) => {
       // final gentle pass: only re-centre parents whose children are all in one family

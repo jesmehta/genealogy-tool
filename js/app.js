@@ -270,6 +270,13 @@
     const focusGiven = isTree ? (prj.person(app.focusId).given || prj.displayName(app.focusId)) : '';
     const UP = ['', 'Parents', 'Grandparents', 'Great-grandparents', 'Great-great-grandparents'];
     const DOWN = ['', 'Children', 'Grandchildren', 'Great-grandchildren', 'Great-great-grandchildren'];
+    const bandName = (g) => {
+      if (fg == null) return 'Generation ' + (g + 1);
+      if (app.treeOpts.mode === 'desc') return g === fg ? focusGiven : 'Generation ' + (g - fg + 1) + ' from ' + focusGiven;
+      const d = g - fg;
+      if (d === 0) return focusGiven + '’s generation';
+      return d < 0 ? (UP[-d] || -d + ' generations up') : (DOWN[d] || d + ' generations down');
+    };
     const vp = R.draw(svg, prj, lay, {
       focusId: isTree ? app.focusId : null,
       selectedId: app.selectedId,
@@ -278,11 +285,10 @@
       showOthers: isTree ? app.treeOpts.others : app.graphOpts.others,
       folds: sc.folds, stubs: sc.stubs, canFold: sc.canFold,
       bandLabel: (g) => {
-        if (fg == null) return 'Generation ' + (g + 1);
-      if (app.treeOpts.mode === 'desc') return g === fg ? focusGiven : 'Generation ' + (g - fg + 1) + ' from ' + focusGiven;
-        const d = g - fg;
-        if (d === 0) return focusGiven + '’s generation';
-        return d < 0 ? (UP[-d] || -d + ' generations up') : (DOWN[d] || d + ' generations down');
+        // birth-year range of the people in this row: shows where generations overlap
+        const ys = lay.nodes.filter((n) => n.gen === g).map((n) => U.year(prj.person(n.id).birth.date)).filter((y) => y != null).map(Math.floor);
+        const range = ys.length ? ' · born ' + Math.min(...ys) + (Math.max(...ys) > Math.min(...ys) ? '–' + Math.max(...ys) : '') : '';
+        return bandName(g) + range;
       },
     });
     const bl = view.querySelector('.legend .branches');

@@ -70,6 +70,13 @@
     return p && p.ok ? p.sort : null;
   };
 
+  /* fractional year (1920.37…) for placing on a time axis; null if not parseable */
+  U.year = (raw) => {
+    const p = U.parseDate(raw);
+    if (!p || !p.ok) return null;
+    return p.year + (p.month ? (p.month - 1) / 12 + (p.day ? (p.day - 1) / 365 : 1 / 24) : 0.5);
+  };
+
   U.yearLabel = (raw) => {
     const p = U.parseDate(raw);
     if (!p) return '';
