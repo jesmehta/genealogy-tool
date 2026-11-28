@@ -244,6 +244,41 @@ table.people tbody tr { cursor: pointer; }
 table.people tbody tr:hover { background: color-mix(in oklab, var(--accent-soft) 55%, var(--surface)); }
 table.people tr.sel { background: var(--accent-soft); }
 .tablewrap { overflow-x: auto; }
+
+/* ---------- missing-data tab ---------- */
+.missview { max-width: none; }
+.misshead h2 { margin: 0 0 4px; font-family: var(--serif); }
+.misshead p { margin: 0 0 12px; }
+.missbar label, .bulkbar label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.missbar select, .bulkbar select { width: auto; padding: 4px 8px; border-radius: 999px; font-size: 13px; }
+.bulkbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: -4px 0 12px; padding: 8px 12px;
+  border: 1px dashed var(--line); border-radius: var(--radius); background: var(--surface); font-size: 13px;
+}
+.bulkbar.on { border-style: solid; border-color: color-mix(in oklab, var(--sun) 70%, var(--line)); background: color-mix(in oklab, var(--sun) 12%, var(--surface)); }
+.bulkbar .sep { width: 1px; align-self: stretch; background: var(--line); }
+.bulkbar input[type=text] { width: 150px; padding: 4px 10px; border-radius: 999px; }
+.misstable { font-size: 13px; }
+.misstable th, .misstable td { padding: 3px 4px; white-space: nowrap; }
+.misstable th { cursor: default; }
+.misstable tbody tr { cursor: default; }
+.misstable td.c, .misstable th.c { text-align: center; width: 28px; }
+.misstable input[type=text], .misstable select {
+  width: 100%; min-width: 96px; border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 4px 6px; font-size: 13px;
+}
+.misstable input[type=text]:hover, .misstable select:hover { border-color: var(--line); }
+.misstable input[type=text]:focus, .misstable select:focus { border-color: var(--accent); background: var(--surface); outline: none; }
+.misstable td.miss { background: color-mix(in oklab, var(--sun) 16%, transparent); }
+.misstable td.miss input::placeholder { color: color-mix(in oklab, var(--sun) 45%, var(--muted)); font-style: italic; }
+.misstable input.bad { color: var(--danger, #b3261e); text-decoration: underline dotted; }
+.misstable .nm { min-width: 170px; }
+.namecell { display: flex; align-items: center; gap: 2px; }
+.namecell .dot { flex: none; }
+.linkish { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0 2px; font-size: 13px; }
+.mc { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; font-size: 10.5px; letter-spacing: 0; cursor: pointer;
+  background: color-mix(in oklab, var(--sun) 45%, var(--surface)); color: var(--sun-ink, var(--text)); }
+.mc.zero { background: var(--accent-soft); color: var(--accent); }
+.msub { margin: 22px 0 8px; font-family: var(--serif); }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--bn); margin-right: 8px; vertical-align: -1px; box-shadow: 0 0 0 2px color-mix(in oklab, currentColor 8%, transparent); }
 .sx { color: var(--muted); font-size: 12px; }

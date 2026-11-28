@@ -1,7 +1,7 @@
 /* Genealogy Tool — app controller: projects, views, persistence, photos. */
 (function (GT) {
   'use strict';
-  const U = GT.util, S = GT.store, M = GT.model, I = GT.infer, IO = GT.io, L = GT.layout, R = GT.render, UI = GT.ui;
+  const U = GT.util, S = GT.store, M = GT.model, I = GT.infer, IO = GT.io, L = GT.layout, R = GT.render, UI = GT.ui, MS = GT.missing;
   const esc = U.esc;
   const $ = (s) => document.querySelector(s);
 
@@ -51,6 +51,7 @@
     app.thumbs.clear();
     if (app.fullURL) { URL.revokeObjectURL(app.fullURL); app.fullURL = null; }
     app.prj = new M.Project(data);
+    app.miss = MS.state();
     app.prj.onChange((kind) => {
       saveState('Saving…');
       save();
@@ -203,9 +204,25 @@
     if (!app.prj.data.people.length) { app.builtView = 'empty'; view.innerHTML = emptyState(); return; }
     if (app.view === 'tree' || app.view === 'graph') return renderTree(view, kind);
     if (kind === 'fields' && app.view === 'relate') return;
+    // typing in the missing-data table: don't rebuild the table under the cursor
+    // (checked a tick later: during a change event caused by Tab, focus hasn't reached the next cell yet)
+    if (kind === 'fields' && app.view === 'missing') {
+      setTimeout(() => {
+        const a = document.activeElement;
+        if (app.view === 'missing' && !(a && a.closest && a.closest('.missview'))) renderView();
+      }, 0);
+      return;
+    }
     app.builtView = app.view;
     if (app.view === 'list') view.innerHTML = listHTML();
     else if (app.view === 'relate') view.innerHTML = relateHTML();
+    else if (app.view === 'missing') {
+      const sx = view.scrollLeft, sy = view.scrollTop;
+      view.innerHTML = MS.html(app);
+      view.scrollLeft = sx; view.scrollTop = sy;
+      const q = view.querySelector('[data-m=q]');
+      if (q && app.miss.focusSearch) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); app.miss.focusSearch = false; }
+    }
     if (app.view === 'list') { const q = view.querySelector('.listbar input'); if (q && app.listFocus) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
   }
 
@@ -491,6 +508,8 @@
 
     const view = $('#view');
     view.addEventListener('click', (e) => {
+      const m = e.target.closest('[data-m-act]');
+      if (m) { MS.onClick(app, m, () => renderView()); return; }
       const b = e.target.closest('[data-act],[data-zoom],[data-sort],tr[data-id]');
       if (!b) return;
       if (b.dataset.zoom) {
@@ -518,6 +537,7 @@
       if (tr) app.setFocus(tr.dataset.id, true);
     });
     view.addEventListener('input', (e) => {
+      if (MS.onInput(app, e.target, () => renderView())) return;
       if (e.target.matches('.listbar input')) {
         app.listQuery = e.target.value;
         app.listFocus = true;
@@ -526,6 +546,7 @@
     });
     view.addEventListener('change', (e) => {
       const t = e.target;
+      if (MS.onChange(app, t, () => renderView())) return;
       if (t.dataset.opt) {
         const o = app.treeOpts;
         o[t.dataset.opt] = t.type === 'checkbox' ? t.checked : Math.max(0, Math.min(12, +t.value || 0));
