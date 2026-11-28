@@ -373,6 +373,10 @@
 
     h.push(`<div class="pactions">` +
       `<button class="btn small" data-act="focus">Centre tree on ${esc(p.given || 'this person')}</button>` +
+      (prj.childrenOf(id).length
+        ? `<button class="btn small" data-act="desc">Descendants of ${esc(p.given || 'this person')}</button>` +
+          `<button class="btn small" data-act="fold">${(prj.data.project.collapsed || []).includes(id) ? 'Unfold' : 'Fold'} branch</button>`
+        : '') +
       `<button class="btn small" data-act="relate">Relationship to…</button>` +
       `<button class="btn small danger" data-act="delete">Delete</button></div>`);
 
@@ -518,7 +522,9 @@
       switch (act) {
         case 'close': app.select(null); break;
         case 'select': app.select(b.dataset.id); break;
-        case 'focus': app.setFocus(id, true); break;
+        case 'focus': app.setTreeMode('focus', id); break;
+        case 'desc': app.setTreeMode('desc', id); break;
+        case 'fold': app.toggleFold(id); break;
         case 'relate': app.openRelate(id); break;
         case 'delete': if (await UI.deletePerson(app, id)) app.select(null); break;
         case 'add-parent': await run(() => UI.addParent(app, id)); break;

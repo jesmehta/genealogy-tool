@@ -77,6 +77,29 @@
 
     // people — tinted by family branch (opt.branches), sex as a small glyph
     const SEX_GLYPH = { F: '♀', M: '♂', X: '⚧' };
+    // folded branch: "+N" pill under the card; foldable: small toggle shown on hover / selection
+    const folds = opt.folds || new Map(), stubs = opt.stubs || new Map(), canFold = opt.canFold || new Set();
+    const foldHTML = (id) => {
+      if (folds.has(id)) {
+        const t = '+' + folds.get(id);
+        const w = 22 + t.length * 7.5;
+        return `<g class="fold folded" data-fold="${id}"><title>${folds.get(id)} hidden — click to unfold</title>` +
+          `<rect x="${W / 2 - w / 2}" y="${H + 6}" width="${w}" height="20" rx="10"/><text x="${W / 2}" y="${H + 20}">▸ ${t}</text></g>`;
+      }
+      if (!canFold.has(id)) return '';
+      return `<g class="fold toggle" data-fold="${id}"><title>Fold this branch (hide descendants)</title>` +
+        `<circle cx="${W / 2}" cy="${H}" r="10"/><text x="${W / 2}" y="${H + 4.5}">▾</text></g>`;
+    };
+    const stubHTML = (id) => {
+      const s = stubs.get(id);
+      if (!s) return '';
+      const t = s.kind === 'up' ? '▲ up' : '▲ ' + s.count;
+      const tip = s.kind === 'up' ? 'Parents not shown — click to go up a generation'
+        : s.count + ' relatives from this person’s own family are not shown — click to add them';
+      const w = 16 + t.length * 7;
+      return `<g class="stub" data-stub="${id}"><title>${tip}</title>` +
+        `<rect x="${W - w - 8}" y="-11" width="${w}" height="20" rx="10"/><text x="${W - 8 - w / 2}" y="3">${t}</text></g>`;
+    };
     const brVar = (i) => `var(--br${i})`;
     for (const n of lay.nodes) {
       const p = prj.person(n.id);
@@ -105,6 +128,7 @@
         `<text class="nm" x="66" y="24">${U.esc(trunc(given, 14))}</text>` +
         `<text class="sn" x="66" y="40">${U.esc(trunc(p.surname || '', 16))}</text>` +
         `<text class="yr" x="66" y="55">${U.esc(trunc(prj.lifespan(p), 19))}</text>` +
+        foldHTML(n.id) + stubHTML(n.id) +
         `</g>`);
     }
 
@@ -171,7 +195,11 @@
         this.pointers.delete(e.pointerId);
         svg.classList.remove('panning');
         if (this.pointers.size === 0 && this.moved <= 4) {
-          const node = this.downTarget && this.downTarget.closest && this.downTarget.closest('.node');
+          const t = this.downTarget && this.downTarget.closest ? this.downTarget : null;
+          const fold = t && t.closest('[data-fold]'), stub = t && t.closest('[data-stub]');
+          if (fold) { this.h.fold && this.h.fold(fold.dataset.fold); return; }
+          if (stub) { this.h.stub && this.h.stub(stub.dataset.stub); return; }
+          const node = t && t.closest('.node');
           const uline = this.downTarget && this.downTarget.closest && this.downTarget.closest('[data-union]');
           if (node) {
             // pointer capture retargets native dblclick to the <svg>, so detect it here

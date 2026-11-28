@@ -87,6 +87,8 @@
       return n;
     });
     const ids = new Set(d.people.map((p) => p.id));
+    // folded branches in the tree views (view state, kept with the project)
+    d.project.collapsed = Array.isArray(d.project.collapsed) ? d.project.collapsed.filter((x) => ids.has(x)) : [];
     d.unions = (raw.unions || []).filter((u) => ids.has(u.a) && ids.has(u.b) && u.a !== u.b).map((u) => Object.assign({
       id: U.uid('u'), type: 'marriage', start: { date: '', place: '' }, end: { date: '', reason: '' },
       offspring: 'unknown', notes: '',

@@ -11,7 +11,8 @@
     focusId: null,
     selectedId: null,
     thumbs: new Map(),      // photoId → object URL (thumbnail)
-    treeOpts: Object.assign({ up: 3, down: 3, siblings: true, partners: true, others: false }, U.storageGet('treeOpts', {})),
+    treeOpts: Object.assign({ mode: 'focus', up: 3, down: 3, siblings: true, partners: true, others: false }, U.storageGet('treeOpts', {})),
+    extras: [],             // families added to the tree view from a ▲ badge: [{ id, roots }]
     graphOpts: Object.assign({ others: false }, U.storageGet('graphOpts', {})),
     pz: null,
     relate: { a: null, b: null, bioOnly: false },
@@ -88,11 +89,44 @@
   app.setFocus = (id, switchToTree) => {
     if (!app.prj.person(id)) return;
     app.focusId = id;
+    app.extras = [];
     U.storageSet('focus:' + app.prj.id, id);
     app.resetView = true;
     if (switchToTree && app.view !== 'tree') setView('tree');
     else renderView();
   };
+  /* tree mode: 'focus' (hourglass) or 'desc' (an ancestor's whole line) */
+  app.setTreeMode = (mode, id) => {
+    app.treeOpts.mode = mode;
+    U.storageSet('treeOpts', app.treeOpts);
+    app.builtView = null;
+    if (id) app.setFocus(id, true);
+    else { app.extras = []; app.resetView = true; if (app.view !== 'tree') setView('tree'); else renderView(); }
+  };
+
+  /* folded branches are stored with the project (so they survive export) */
+  app.collapsed = () => app.prj.data.project.collapsed || [];
+  app.toggleFold = (id) => {
+    const c = app.collapsed();
+    app.prj.data.project.collapsed = c.includes(id) ? c.filter((x) => x !== id) : c.concat(id);
+    app.keepOn = id;
+    app.prj.touch('view');
+  };
+  app.unfoldAll = () => { app.prj.data.project.collapsed = []; app.resetView = true; app.prj.touch('view'); };
+  app.stub = (id) => {
+    const s = app.scope && app.scope.stubs.get(id);
+    if (!s) return;
+    if (s.kind === 'up') {
+      const ps = app.prj.parentsOf(id);
+      const kin = ps.find((l) => M.KIN_TYPES.has(l.type)) || ps[0];
+      if (kin) app.setFocus(kin.parent);
+      return;
+    }
+    app.extras.push({ id, roots: L.topAncestors(app.prj, id) });
+    app.keepOn = id;
+    renderView();
+  };
+
   app.openRelate = (id) => {
     app.relate.a = id;
     if (app.relate.b === id) app.relate.b = null;
@@ -184,16 +218,18 @@
       const o = app.treeOpts, g = app.graphOpts;
       view.innerHTML = `<div class="treewrap"><div class="treebar">` +
         (isTree
-          ? `<span>Centred on <span class="focusname"></span></span>` +
+          ? `<select class="modesel" data-act="mode" aria-label="Tree mode"><option value="focus"${o.mode === 'focus' ? ' selected' : ''}>Centred on</option>` +
+            `<option value="desc"${o.mode === 'desc' ? ' selected' : ''}>Descendants of</option></select> <span class="focusname"></span>` +
+            (o.mode === 'desc' ? '' :
             `<label>Generations up <input type="number" min="0" max="12" data-opt="up" value="${o.up}"></label>` +
             `<label>down <input type="number" min="0" max="12" data-opt="down" value="${o.down}"></label>` +
             `<label><input type="checkbox" data-opt="siblings" ${o.siblings ? 'checked' : ''}> siblings</label>` +
-            `<label><input type="checkbox" data-opt="partners" ${o.partners ? 'checked' : ''}> ancestors’ other partners</label>` +
+            `<label><input type="checkbox" data-opt="partners" ${o.partners ? 'checked' : ''}> ancestors’ other partners</label>`) +
             `<label><input type="checkbox" data-opt="others" ${o.others ? 'checked' : ''}> other relationships</label>`
           : `<span>Everyone in <b>${esc(prj.name)}</b></span>` +
             `<label><input type="checkbox" data-gopt="others" ${g.others ? 'checked' : ''}> other relationships</label>` +
             `<label>Find <select data-act="jump"><option value="">—</option></select></label>`) +
-        `<span class="spacer"></span><button class="btn small" data-act="add-person">+ Person</button></div>` +
+        `<span class="extras"></span><span class="spacer"></span><button class="btn small" data-act="add-person">+ Person</button></div>` +
         `<svg class="tree" role="img" aria-label="Family tree"></svg>` +
         `<div class="zoomctl"><button class="btn" data-zoom="in" aria-label="Zoom in">+</button><button class="btn" data-zoom="out" aria-label="Zoom out">−</button><button class="btn" data-zoom="fit" aria-label="Fit to screen" title="Fit">⤢</button></div>` +
         legendHTML() + `</div>`;
@@ -204,6 +240,8 @@
         dblclick: (id) => app.setFocus(id, true),
         union: (uid) => UI.editUnion(app, uid),
         background: () => {},
+        fold: (id) => app.toggleFold(id),
+        stub: (id) => app.stub(id),
       });
       app.resetView = true;
     }
@@ -214,8 +252,17 @@
         .sort((a, b) => prj.displayName(a).localeCompare(prj.displayName(b)))
         .map((p) => `<option value="${p.id}">${esc(prj.displayName(p))}</option>`).join('');
     }
-    const include = isTree ? L.hourglassSet(prj, app.focusId, app.treeOpts) : null;
-    const lay = L.compute(prj, include);
+    const sc = L.scope(prj, {
+      mode: isTree ? app.treeOpts.mode : 'all', focus: app.focusId, opts: app.treeOpts,
+      extraRoots: isTree ? app.extras.flatMap((e) => e.roots) : [], collapsed: app.collapsed(),
+    });
+    app.scope = sc;
+    const ex = view.querySelector('.treebar .extras');
+    const nFold = sc.folds.size;
+    ex.innerHTML = (isTree ? app.extras.map((e, i) => `<span class="chip extra">+ ${esc(prj.person(e.id) ? (prj.person(e.id).given || prj.displayName(e.id)) : '?')}’s family` +
+      `<button class="btn ghost" data-act="drop-extra" data-i="${i}" title="Remove from view" aria-label="Remove">✕</button></span>`).join('') : '') +
+      (nFold ? `<button class="btn small" data-act="unfold-all" title="Unfold every folded branch">Unfold all (${nFold})</button>` : '');
+    const lay = L.compute(prj, sc.include);
     app.lay = lay;
     const svg = view.querySelector('svg.tree');
     const br = app.br();
@@ -229,8 +276,10 @@
       thumbs: app.thumbs,
       branches: br,
       showOthers: isTree ? app.treeOpts.others : app.graphOpts.others,
+      folds: sc.folds, stubs: sc.stubs, canFold: sc.canFold,
       bandLabel: (g) => {
         if (fg == null) return 'Generation ' + (g + 1);
+      if (app.treeOpts.mode === 'desc') return g === fg ? focusGiven : 'Generation ' + (g - fg + 1) + ' from ' + focusGiven;
         const d = g - fg;
         if (d === 0) return focusGiven + '’s generation';
         return d < 0 ? (UP[-d] || -d + ' generations up') : (DOWN[d] || d + ' generations down');
@@ -239,12 +288,14 @@
     const bl = view.querySelector('.legend .branches');
     if (bl) {
       bl.innerHTML = br.list.length
-        ? br.list.map((b) => `<div class="row"><span class="dot" style="background:var(--br${b.colour})"></span>${esc(b.label)} <span class="hint">(${b.size})</span></div>`).join('') +
+        ? br.list.map((b) => `<button class="row brow" data-act="branch" data-i="${b.idx}" title="Show this family’s descendants"><span class="dot" style="background:var(--br${b.colour})"></span>${esc(b.label)} <span class="hint">(${b.size})</span></button>`).join('') +
           `<div class="row"><span class="dot"></span>No branch (married in, parents not recorded)</div>`
         : '<p class="hint">Branches appear once children are linked to parents.</p>';
     }
     app.pz.setViewport(vp);
+    if (app.keepOn && !app.resetView) { centerOnNode(app.keepOn); app.keepOn = null; }
     if (app.resetView) {
+      app.keepOn = null;
       app.resetView = false;
       if (isTree && lay.pos.get(app.focusId) && (lay.width > svg.clientWidth * 1.2 || lay.height > svg.clientHeight * 1.2)) {
         centerOnNode(app.focusId, true);
@@ -271,7 +322,10 @@
       `<div class="row">${line('oline')} Other relationship</div>` +
       `<div class="row"><svg viewBox="0 0 34 10"><rect x="2" y="1" width="30" height="8" rx="2" fill="none" stroke="currentColor" stroke-dasharray="4 2"/></svg> Deceased</div>` +
       `<div class="row"><span style="width:34px;text-align:center">♀ ♂ ⚧</span> Sex (blank if unknown)</div>` +
-      `<p class="hint">Click a person to edit · double-click to centre · click a partner line to edit the relationship · drag to pan · scroll / pinch to zoom.</p></details>`;
+      `<b class="lh">Folding</b>` +
+      `<div class="row"><span class="lg-pill">▸ +12</span> Folded branch, 12 people hidden: click to unfold</div>` +
+      `<div class="row"><span class="lg-pill stubpill">▲ 23</span> Their own family is not in this view: click to add it</div>` +
+      `<p class="hint">Click a person to edit · double-click to centre · hover or select a card and click ▾ to fold its branch · click a family above to see its descendants · click a partner line to edit the relationship · drag to pan · scroll / pinch to zoom.</p></details>`;
   }
 
   /* --- list --- */
@@ -448,6 +502,9 @@
         case 'sample': projectAction('sample'); break;
         case 'import': $('#importFile').click(); break;
         case 'swap': { const r = app.relate; [r.a, r.b] = [r.b, r.a]; renderView(); break; }
+        case 'branch': { const br = app.br().list[+b.dataset.i]; if (br) app.setTreeMode('desc', br.founders[0]); break; }
+        case 'drop-extra': app.extras.splice(+b.dataset.i, 1); app.resetView = true; renderView(); break;
+        case 'unfold-all': app.unfoldAll(); break;
       }
     });
     view.addEventListener('dblclick', (e) => {
@@ -473,6 +530,8 @@
         app.graphOpts[t.dataset.gopt] = t.checked;
         U.storageSet('graphOpts', app.graphOpts);
         renderView();
+      } else if (t.dataset.act === 'mode') {
+        app.setTreeMode(t.value);
       } else if (t.dataset.act === 'jump' && t.value) {
         app.select(t.value);
         centerOnNode(t.value, true);

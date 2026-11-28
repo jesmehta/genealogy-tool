@@ -45,6 +45,97 @@
     return inc;
   };
 
+  /* ---------- descendants view: a root, every descendant, and the people they had children with ---------- */
+  L.descendantSet = function (prj, root) {
+    const inc = new Set();
+    if (!prj.person(root)) return inc;
+    const seen = new Set([root]), st = [root];
+    inc.add(root);
+    while (st.length) {
+      const p = st.pop();
+      prj.unionsOf(p).forEach((u) => inc.add(prj.partnerIn(u, p)));
+      for (const l of prj.childrenOf(p)) {
+        // the child's other parents (co-parent without a recorded union, adoptive / step parents)
+        prj.parentsOf(l.child).forEach((pl) => inc.add(pl.parent));
+        inc.add(l.child);
+        if (!seen.has(l.child)) { seen.add(l.child); st.push(l.child); }
+      }
+    }
+    return inc;
+  };
+
+  const anyAncestors = (prj, id) => {
+    const seen = new Set(), st = [id];
+    while (st.length) prj.parentsOf(st.pop()).forEach((l) => { if (!seen.has(l.parent)) { seen.add(l.parent); st.push(l.parent); } });
+    return seen;
+  };
+  const anyDescendants = (prj, ids) => {
+    const seen = new Set(ids), st = [...ids];
+    while (st.length) prj.childrenOf(st.pop()).forEach((l) => { if (!seen.has(l.child)) { seen.add(l.child); st.push(l.child); } });
+    return seen;
+  };
+  /* topmost recorded ancestors of a person (people with no parents of their own) */
+  L.topAncestors = (prj, id) => [...anyAncestors(prj, id)].filter((a) => !prj.parentsOf(a).length);
+
+  /* ---------- what a view shows: mode + extra families + collapsed branches ----------
+     o = { mode: 'focus'|'desc'|'all', focus, opts (hourglass), extraRoots: [ids], collapsed: [ids] }
+     Returns { include (null = everyone), folds: Map(id → hidden count), stubs: Map(id → {count, kind}),
+     canFold: Set(ids that have children shown) }. */
+  L.scope = function (prj, o) {
+    const all = prj.data.people.map((p) => p.id);
+    let inc;
+    if (o.mode === 'all') inc = new Set(all);
+    else if (o.mode === 'desc') inc = L.descendantSet(prj, o.focus);
+    else inc = L.hourglassSet(prj, o.focus, o.opts);
+    if (o.mode !== 'all') for (const r of o.extraRoots || []) L.descendantSet(prj, r).forEach((x) => inc.add(x));
+
+    // the focus person and the line above it can't be folded away
+    const keep = new Set();
+    if (o.mode !== 'all' && prj.person(o.focus)) { keep.add(o.focus); anyAncestors(prj, o.focus).forEach((a) => keep.add(a)); }
+
+    const folds = new Map(), hiddenBy = new Map();
+    for (const c of o.collapsed || []) {
+      if (!inc.has(c) || keep.has(c) || hiddenBy.has(c)) continue;
+      let n = 0;
+      const st = [c];
+      while (st.length) {
+        for (const l of prj.childrenOf(st.pop())) {
+          if (!inc.has(l.child) || keep.has(l.child) || hiddenBy.has(l.child) || l.child === c) continue;
+          hiddenBy.set(l.child, c); n++; st.push(l.child);
+        }
+      }
+      folds.set(c, n);
+    }
+    hiddenBy.forEach((_, id) => inc.delete(id));
+    // partners / co-parents left with nobody to connect to go with the people they joined
+    const linked = (p) => prj.parentsOf(p).some((l) => inc.has(l.parent)) || prj.childrenOf(p).some((l) => inc.has(l.child)) ||
+      prj.unionsOf(p).some((u) => inc.has(prj.partnerIn(u, p)));
+    for (const [h, c] of [...hiddenBy]) {
+      const near = prj.unionsOf(h).map((u) => prj.partnerIn(u, h)).concat(prj.childrenOf(h).flatMap((l) => prj.parentsOf(l.child).map((x) => x.parent)));
+      for (const q of near) {
+        if (inc.has(q) && !keep.has(q) && q !== c && !folds.has(q) && !linked(q)) { inc.delete(q); folds.set(c, folds.get(c) + 1); }
+      }
+    }
+
+    const canFold = new Set([...inc].filter((p) => !keep.has(p) && prj.childrenOf(p).some((l) => inc.has(l.child))));
+
+    // stubs: people shown whose parents are hidden by the view (not by folding)
+    const stubs = new Map();
+    if (o.mode !== 'all') {
+      for (const p of inc) {
+        if (!prj.parentsOf(p).some((l) => !inc.has(l.parent) && !hiddenBy.has(l.parent))) continue;
+        if (o.mode === 'focus' && keep.has(p)) continue;         // raise "generations up" instead
+        if (o.mode === 'desc' && p === o.focus) { stubs.set(p, { kind: 'up', count: prj.parentsOf(p).length }); continue; }
+        const anc = anyAncestors(prj, p);
+        const fam = anyDescendants(prj, [...anc]);
+        anc.forEach((a) => fam.add(a));
+        const count = [...fam].filter((x) => !inc.has(x) && !hiddenBy.has(x)).length;
+        if (count) stubs.set(p, { kind: 'family', count });
+      }
+    }
+    return { include: o.mode === 'all' && !hiddenBy.size ? null : inc, folds, stubs, canFold };
+  };
+
   /* ---------- main ---------- */
   L.compute = function (prj, include) {
     const data = prj.data;

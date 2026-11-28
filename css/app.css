@@ -163,6 +163,31 @@ svg.tree.panning { cursor: grabbing; }
 .legend .row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .legend svg { width: 34px; height: 10px; flex: none; }
 .legend .dot { margin-right: 0; flex: none; }
+.legend .brow { width: 100%; border: 0; background: none; padding: 2px 4px; margin-left: -4px; border-radius: 8px; text-align: left; cursor: pointer; color: inherit; font-size: inherit; }
+.legend .brow:hover, .legend .brow:focus-visible { background: var(--accent-soft); color: var(--text); }
+.lg-pill { flex: none; width: 46px; text-align: center; border-radius: 10px; font-size: 11px; font-weight: 700; padding: 1px 0;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--text); }
+.lg-pill.stubpill { background: color-mix(in oklab, var(--sun) 35%, var(--surface)); border-color: color-mix(in oklab, var(--sun) 70%, var(--line)); }
+
+/* tree mode selector + families added to the view */
+.treebar .modesel { width: auto; padding: 3px 26px 3px 10px; border-radius: 999px; font-size: 13px; }
+.treebar .extras { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip.extra { display: inline-flex; align-items: center; gap: 2px; --b: var(--sun); }
+.chip.extra .btn { padding: 0 4px; min-height: 0; font-size: 11px; line-height: 1.4; }
+
+/* folding: "+N" pill on a folded card, ▾ toggle on hover / selection; ▲ badge for hidden own family */
+.fold, .stub { cursor: pointer; }
+.fold rect, .fold circle { fill: var(--surface); stroke: var(--edge); stroke-width: 1.2; }
+.fold text, .stub text { font-size: 11.5px; font-weight: 700; text-anchor: middle; }
+.node .fold text { fill: var(--text); }
+.fold.folded rect { fill: var(--surface-2); stroke: var(--b, var(--edge)); stroke-width: 1.6; }
+.fold.toggle { opacity: 0; transition: opacity .12s; }
+.node:hover .fold.toggle, .node.selected .fold.toggle, .node:focus-within .fold.toggle { opacity: 1; }
+.fold:hover rect, .fold:hover circle { stroke: var(--accent); stroke-width: 2; }
+.stub rect { fill: color-mix(in oklab, var(--sun) 35%, var(--surface)); stroke: color-mix(in oklab, var(--sun) 70%, var(--edge)); stroke-width: 1.2; }
+.node .stub text { fill: var(--sun-ink, var(--text)); }
+.stub:hover rect { stroke: var(--accent); stroke-width: 2; }
+@media (hover: none) { .fold.toggle { opacity: .85; } }
 
 .band.odd { fill: var(--band); }
 .band.even { fill: transparent; }

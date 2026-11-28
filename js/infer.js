@@ -349,6 +349,7 @@
       label: s.line ? prj.displayName(s.kids[0]) + '’s line'
         : s.founders.map((f) => prj.person(f).given || prj.displayName(f)).join(' & ') + (prj.person(s.founders[0]).surname ? ' ' + prj.person(s.founders[0]).surname : ''),
       size: s.size,
+      founders: s.founders,
     }));
     return { list, of: (id) => of.get(id) || [] };
   };
