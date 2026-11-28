@@ -122,6 +122,50 @@ are per project. Added families reset when the root changes.
 collapsing a whole branch into a single summary card (it would break the partner/child lines the
 layout draws).
 
+**Missing data tab (0.4.0).**
+*The need:* a family entered from a whiteboard is mostly names. Surnames, sex, dates and places
+need filling in, often the same value for many people (a whole branch shares a surname). The gaps
+also need to be visible as a research list.
+*What was built:* `js/missing.js`, a table with one row per person and an input in every cell, so
+typing saves immediately. A cell counts as missing when it is empty. Sex counts when it is
+"unknown". Death date and place count only for people ticked as deceased, because the model can't
+tell "alive" from "not recorded". Other names and custom fields are shown but never counted, so a
+"To confirm" note stays visible as a column. Column badges give the count per field and filter to
+those rows. The bulk bar sets one field on the ticked rows. By default it fills only empty cells,
+so applying a surname to a mixed selection doesn't overwrite a married name. Each bulk edit stores
+a snapshot of the people it touched, so it can be undone (20 steps, per session; there's still no
+general undo). Partnerships get their own small table, because their start dates drive the
+timeline. The table isn't rebuilt while the cursor is in it, so Tab moves cell to cell without
+losing focus.
+
+**Siblings ordered by age (0.4.0).**
+In every view, children of a family are laid out left to right by birth date. Dated siblings take
+the dated siblings' slots in birth order, and undated ones keep their entry position. The layout's
+barycentre sweeps can swap siblings to shorten lines, so a pass after the sweeps puts each family's
+sibling blocks back in age order before the final positioning. A block holding children of two
+families (cousins who married) is left alone.
+
+**Timeline: collapsed vs expanded (0.4.0).**
+*The need:* see chronology without losing the generation structure: which aunt is only a few years
+older than her niece, when marriages happened. The compact view should stay compact.
+*Collapsed* (default) is the generation layout, with siblings by age and each band labelled with
+its birth-year range ("born 1946–1960"), which shows where generations overlap at no cost in space.
+*Expanded* (the "Timeline" toggle, in both tree views) keeps the horizontal layout from the
+generation engine and sets each card's height from its birth year at 6 px/year. A 28-year
+generation then takes about one compact row, so generations still cluster. Choices the user made:
+- **Undated people are estimated from relatives**, not parked in a separate lane: parents' year +28,
+  children's −28, partners' year, a union's start −24, averaged and iterated
+  (`L.estimateYears`). People with no dated relative at all fall back to their generation. Estimated
+  cards are faded and dashed and show "≈ b. 1948". With no dates at all, year labels are hidden and
+  the toolbar says positions are estimates.
+- **Partners sit at their own birth years.** The partner line slopes between them, and a dotted
+  stem runs down to a diamond at the union's start year (dashed when estimated: earliest child −1,
+  otherwise the elder partner +24). Children hang from that diamond.
+- **Collisions:** the horizontal layout is still per generation, so cards from different
+  generations can meet. The later card is pushed down just enough to clear, and a small tick marks
+  its true year. A full 2-D layout was judged too big for the gain.
+Decade gridlines (stronger every 50 years) replace the generation bands.
+
 **Colour means family branch.** (Chosen over surname or sex; theme direction "botanical" chosen
 over "heirloom" and "bright modern".)
 A *founding family* is a set of kin parents with no kin parents of their own, together with their

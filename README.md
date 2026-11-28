@@ -34,6 +34,8 @@ JSON (data only) or ZIP (data + photos) to back up, move or share.
 | Inferred | Full, half, adoptive and step siblings; grandparents and grand-children; step-parents/children; aunts and uncles (incl. by marriage); first cousins; nieces and nephews; in-laws |
 | Relationship finder | Any two people → "nth cousin m× removed", half-relations, in-law and step terms, closest common ancestor, and the shortest connection path. Optional "biological only" |
 | Views | **Focus tree**, either *Centred on* one person (hourglass, generations adjustable) or *Descendants of* an ancestor (their whole line, nothing else) · **Whole family** graph · **People** table · **Relationship finder** |
+| Missing data | A spreadsheet of every person with empty fields highlighted and counted per column. Filter by missing field, family branch or name, type straight into cells, or tick rows and **Set *field* to *value*** in bulk (only where empty, by default), with undo. A second table lists partnerships missing a start date |
+| Timeline | **Collapsed** (default): compact generation rows, siblings left to right by age, birth-year range on each band. **Expanded**: cards placed by birth year on a decade grid, partnership start marked on a stem, undated people estimated from relatives (faded, ≈) |
 | Large families | Fold any branch into a "▸ +N" pill (saved with the project). A "▲ N" badge marks people whose own family is outside the view; click it to add that family. Click a family in the legend to open its descendants |
 | Projects | Several families side by side; switch, rename, notes, delete; a sample family to explore |
 | Export / import | `Export JSON` → `<family>_<YYYY-MM-DD_HHMM>.json`; `Export ZIP` → same name `.zip` with `data.json` + `photos/`. Importing either one asks whether to replace or copy if the family already exists |
@@ -52,6 +54,7 @@ js/render.js        SVG drawing, pan / zoom / pinch
 js/zip.js           dependency-free ZIP writer / reader
 js/io.js            JSON / ZIP export and import
 js/ui.js            dialogs, person picker, person panel
+js/missing.js       Missing data tab: gap table, inline + bulk edits
 js/app.js           controller: projects, views, wiring
 docs/               DESIGN (decisions) · CHANGELOG · TODO (watch-outs)
 ```

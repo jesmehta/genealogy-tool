@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 — 2026-11-28 — missing data, siblings by age, expanded timeline
+
+- **Missing data** tab: every person in a table, empty fields highlighted and counted per column,
+  filters (missing field, family branch, name), inline editing, bulk "Set field to value" on ticked
+  rows (only where empty by default) with undo, and a partnerships table for start dates.
+- Siblings are ordered left to right by birth date at every level. Undated siblings keep their
+  entry order.
+- Generation bands show the birth-year range of the people in them.
+- **Timeline** toggle in the focus and whole-family views: cards placed by birth year on a decade
+  grid, partnership start shown as a diamond on a stem, undated people estimated from relatives
+  (faded, ≈), and colliding cards pushed down with a tick at their true year.
+- Requirement and design: DESIGN.md, "Missing data tab", "Siblings ordered by age", "Timeline".
+  Screenshots (local, git-ignored): `review/after-missing/`, `review/after-timeline/`.
+
 ## 0.3.0 — 2026-11-28 — scoped views for large families
 
 - **Descendants of**: a second tree mode beside *Centred on*. It shows one ancestor's whole line

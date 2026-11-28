@@ -14,6 +14,9 @@
 - [ ] Per-person sources/citations (currently: notes + custom fields).
 - [ ] Choose which union an untagged child belongs to directly in the person panel (the model supports
       `unionId`; the UI sets it only when a child is added through "+ Child" on a union).
+- [ ] Timeline: per-person "born about" hints (e.g. "older than X") to steer estimates; a
+      lifespan bar (birth→death) on each card; a time axis that stays pinned on screen while panning.
+- [ ] Missing data: research-status column (to ask / asked / confirmed), and exporting the gap list as CSV.
 - [ ] Scoped views, next steps: a **Descendants of a couple** root (today one founder is the root, and
       the partner comes along through the union); an **ancestors-only** (pedigree) mode for working
       backwards through the mothers' lines; fold/unfold by generation ("fold everything below
@@ -55,6 +58,16 @@
   that view (it would hide the person you're centred on) but still applies in the whole-family view.
 - **Branch legend rows open descendants of the first founder.** For a split branch ("X's line") that
   is X. For a couple it is the first-entered founder, with the partner included through the union.
+- **Bulk-edit undo is per session.** Snapshots live in memory. Reloading or switching project
+  clears them, while the edits themselves are already saved.
+- **"Missing" is a rule, not a fact.** Death date/place count only for people ticked deceased.
+  Other names and custom fields are never counted. A placeholder name like "Wife 2" is not empty,
+  so it isn't counted (the "To confirm" column covers it).
+- **Timeline estimates assume 28-year generations and marriage at 24.** One real date shifts a whole
+  connected family, so expect cards to move as dates are entered. `L.GEN_YEARS`, `L.MARRY_AGE` and
+  `L.PX_YEAR` in `layout.js` are the knobs.
+- **Timeline collisions push cards down**, so a pushed card's top edge is not its birth year (the
+  tick is). Dense families can cascade several pushes.
 - **`color-mix()`** drives the card tints, so very old browsers (pre-2023) show untinted cards.
 - **No ES modules on purpose.** Converting to `type="module"` breaks opening the page from disk.
 - Scripts must load in the order given in `index.html` (each extends `window.GT`).
