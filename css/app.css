@@ -189,6 +189,42 @@ svg.tree.panning { cursor: grabbing; }
 .stub:hover rect { stroke: var(--accent); stroke-width: 2; }
 @media (hover: none) { .fold.toggle { opacity: .85; } }
 
+/* quick editing: "+" menu, connect handle, drag line, tray */
+.qadd, .chandle { cursor: pointer; opacity: 0; transition: opacity .12s; }
+.chandle { cursor: crosshair; }
+.node:hover .qadd, .node:hover .chandle, .node.selected .qadd, .node.selected .chandle, .node:focus-within .qadd { opacity: 1; }
+@media (hover: none) { .node.selected .qadd, .node.selected .chandle { opacity: 1; } }
+.qadd circle { fill: var(--sun); stroke: color-mix(in oklab, var(--sun) 55%, var(--text)); stroke-width: 1.2; }
+.node .qadd text { fill: var(--sun-ink, var(--text)); font-size: 17px; font-weight: 700; text-anchor: middle; }
+.chandle circle { fill: var(--surface); stroke: var(--accent); stroke-width: 1.6; }
+.node .chandle text { fill: var(--accent); font-size: 12px; font-weight: 700; text-anchor: middle; }
+.linkdrag { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 6 4; pointer-events: none; }
+.node.droptarget .box { stroke: var(--accent); stroke-width: 3; fill: var(--accent-soft); }
+.oline.cousin { stroke: var(--other, var(--muted)); stroke-dasharray: 1.5 5; stroke-width: 2.2; stroke-linecap: round; fill: none; }
+.qmenu {
+  position: fixed; z-index: 60; min-width: 170px; padding: 6px; border-radius: 12px; background: var(--surface);
+  border: 1px solid var(--line); box-shadow: var(--shadow); display: flex; flex-direction: column;
+}
+.qmenu .qh { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 4px 8px 6px; }
+.qmenu button { text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--text); }
+.qmenu button:hover, .qmenu button:focus-visible { background: var(--accent-soft); outline: none; }
+.qmenu button:last-child { border-top: 1px solid var(--line); border-radius: 0 0 8px 8px; margin-top: 4px; color: var(--muted); }
+.relpick { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+.relpick label { display: flex; gap: 6px; align-items: center; }
+.traywrap { position: absolute; top: 60px; left: 16px; z-index: 5; max-width: min(260px, calc(100% - 90px)); }
+.tray {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px; font-size: 12.5px;
+  box-shadow: var(--shadow); max-height: calc(100vh - 260px); overflow-y: auto;
+}
+.tray summary { cursor: pointer; font-weight: 600; color: var(--text); }
+.tray .cnt { display: inline-block; padding: 0 7px; border-radius: 999px; background: color-mix(in oklab, var(--sun) 45%, var(--surface)); color: var(--sun-ink, var(--text)); font-size: 11px; margin-left: 4px; }
+.tray .hint { margin: 6px 0; }
+.tgroup { border-top: 1px solid var(--line); padding: 6px 0 4px; }
+.tgh { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+.tperson { display: flex; align-items: center; width: 100%; text-align: left; border: 0; background: none; padding: 4px 6px; border-radius: 8px; cursor: grab; touch-action: none; color: var(--text); font-size: 13px; }
+.tperson:hover { background: var(--accent-soft); }
+.dragghost { position: fixed; z-index: 70; pointer-events: none; padding: 5px 10px; border-radius: 999px; background: var(--accent); color: var(--accent-ink, #fff); font-size: 13px; box-shadow: var(--shadow); }
+
 /* expanded timeline */
 .tgrid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 6; }
 .tgrid.major { stroke-dasharray: none; opacity: .8; }

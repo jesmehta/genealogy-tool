@@ -1,7 +1,7 @@
 /* Genealogy Tool — app controller: projects, views, persistence, photos. */
 (function (GT) {
   'use strict';
-  const U = GT.util, S = GT.store, M = GT.model, I = GT.infer, IO = GT.io, L = GT.layout, R = GT.render, UI = GT.ui, MS = GT.missing;
+  const U = GT.util, S = GT.store, M = GT.model, I = GT.infer, IO = GT.io, L = GT.layout, R = GT.render, UI = GT.ui, MS = GT.missing, C = GT.connect;
   const esc = U.esc;
   const $ = (s) => document.querySelector(s);
 
@@ -251,7 +251,7 @@
         `<span class="tlnote hint"></span><span class="extras"></span><span class="spacer"></span><button class="btn small" data-act="add-person">+ Person</button></div>` +
         `<svg class="tree" role="img" aria-label="Family tree"></svg>` +
         `<div class="zoomctl"><button class="btn" data-zoom="in" aria-label="Zoom in">+</button><button class="btn" data-zoom="out" aria-label="Zoom out">−</button><button class="btn" data-zoom="fit" aria-label="Fit to screen" title="Fit">⤢</button></div>` +
-        legendHTML() + `</div>`;
+        `<div class="traywrap"></div>` + legendHTML() + `</div>`;
       app.builtView = app.view;
       const svg = view.querySelector('svg.tree');
       app.pz = new R.PanZoom(svg, {
@@ -260,6 +260,8 @@
         union: (uid) => UI.editUnion(app, uid),
         background: () => {},
         fold: (id) => app.toggleFold(id),
+        qadd: (id, x, y) => C.quickMenu(app, id, x, y),
+        connect: (a, b) => C.connectDialog(app, a, b),
         stub: (id) => app.stub(id),
       });
       app.resetView = true;
@@ -305,7 +307,7 @@
       thumbs: app.thumbs,
       branches: br,
       showOthers: isTree ? app.treeOpts.others : app.graphOpts.others,
-      folds: sc.folds, stubs: sc.stubs, canFold: sc.canFold,
+      folds: sc.folds, stubs: sc.stubs, canFold: sc.canFold, editable: true,
       bandLabel: (g) => {
         // birth-year range of the people in this row: shows where generations overlap
         const ys = lay.nodes.filter((n) => n.gen === g).map((n) => U.year(prj.person(n.id).birth.date)).filter((y) => y != null).map(Math.floor);
@@ -313,6 +315,8 @@
         return bandName(g) + range;
       },
     });
+    const tw = view.querySelector('.traywrap');
+    if (tw) tw.innerHTML = C.trayHTML(app, isTree ? app.focusId : null);
     const bl = view.querySelector('.legend .branches');
     if (bl) {
       bl.innerHTML = br.list.length
@@ -357,6 +361,10 @@
       `<b class="lh">Folding</b>` +
       `<div class="row"><span class="lg-pill">▸ +12</span> Folded branch, 12 people hidden: click to unfold</div>` +
       `<div class="row"><span class="lg-pill stubpill">▲ 23</span> Their own family is not in this view: click to add it</div>` +
+      `<b class="lh">Editing</b>` +
+      `<div class="row"><span class="lg-pill">+</span> On a card (hover / select): add a parent, child, partner, sibling, cousin…</div>` +
+      `<div class="row"><span class="lg-pill">⇢</span> Drag from a card’s corner onto another card to connect them</div>` +
+      `<div class="row">${line('oline cousin')} Cousin (common ancestor not recorded)</div>` +
       `<p class="hint">Click a person to edit · double-click to centre · hover or select a card and click ▾ to fold its branch · click a family above to see its descendants · click a partner line to edit the relationship · drag to pan · scroll / pinch to zoom.</p></details>`;
   }
 
@@ -586,6 +594,7 @@
       if (e.key === 'Escape' && !$('#dialog').open && app.selectedId) app.select(null);
     });
     UI.bindPanel(app, $('#panel'));
+    C.bindTray(app, view);
   }
 
   async function projectAction(act) {

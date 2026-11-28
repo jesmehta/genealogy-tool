@@ -74,13 +74,14 @@
     }
 
     // "other" relationships
-    if (opt.showOthers) {
+    {
       for (const o of prj.data.others) {
+        if (!opt.showOthers && o.kind !== 'cousin') continue;
         const a = pos.get(o.a), b = pos.get(o.b);
         if (!a || !b) continue;
         const x1 = a.x + W / 2, y1 = a.y + H, x2 = b.x + W / 2, y2 = b.y + H;
         const drop = 40 + Math.abs(x2 - x1) / 10;
-        edges.push(`<path class="oline" d="M${x1} ${y1}C${x1} ${y1 + drop} ${x2} ${y2 + drop} ${x2} ${y2}"><title>${U.esc(o.label)}</title></path>`);
+        edges.push(`<path class="oline${o.kind === 'cousin' ? ' cousin' : ''}" d="M${x1} ${y1}C${x1} ${y1 + drop} ${x2} ${y2 + drop} ${x2} ${y2}"><title>${U.esc(o.label)}</title></path>`);
       }
     }
 
@@ -140,6 +141,8 @@
         `<text class="yr" x="66" y="55">${U.esc(trunc(prj.lifespan(p) || (n.est && n.year != null && lay.timeline && lay.timeline.hasDates ? '≈ b. ' + Math.floor(n.year) : ''), 19))}</text>` +
         (n.trueY != null ? `<path class="truetick" d="M-10 ${n.trueY - n.y}H-2V8"><title>Moved down to make room; born ≈ ${Math.floor(n.year)}</title></path>` : '') +
         foldHTML(n.id) + stubHTML(n.id) +
+        (opt.editable ? `<g class="qadd" data-qadd="${n.id}"><title>Add a relative…</title><circle cx="2" cy="2" r="11"/><text x="2" y="7">+</text></g>` +
+          `<g class="chandle" data-handle="${n.id}"><title>Drag to another person to connect</title><circle cx="${W + 2}" cy="${H - 2}" r="10"/><text x="${W + 2}" y="${H + 2.5}">⇢</text></g>` : '') +
         `</g>`);
     }
 
@@ -185,12 +188,37 @@
       }, { passive: false });
       svg.addEventListener('pointerdown', (e) => {
         if (e.button !== 0 && e.pointerType === 'mouse') return;
+        const hd = e.target.closest && e.target.closest('[data-handle]');
+        if (hd && this.h.connect) {
+          // connect mode: a rubber-band line from this card to the pointer
+          e.stopPropagation();
+          svg.setPointerCapture(e.pointerId);
+          const from = hd.dataset.handle, n = svg.querySelector(`.node[data-id="${from}"]`);
+          const m = /translate\(([-\d.]+),([-\d.]+)\)/.exec(n.getAttribute('transform'));
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          line.setAttribute('class', 'linkdrag');
+          this.vp.appendChild(line);
+          this.linking = { id: e.pointerId, from, x0: +m[1] + L.W / 2, y0: +m[2] + L.H / 2, line, over: null };
+          return;
+        }
         svg.setPointerCapture(e.pointerId);
         this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (this.pointers.size === 1) { this.moved = 0; this.downTarget = e.target; }
         this.lastPinch = null;
       });
       svg.addEventListener('pointermove', (e) => {
+        const lk = this.linking;
+        if (lk && lk.id === e.pointerId) {
+          const r = svg.getBoundingClientRect();
+          const wx = (e.clientX - r.left - this.t.x) / this.t.k, wy = (e.clientY - r.top - this.t.y) / this.t.k;
+          lk.line.setAttribute('d', `M${lk.x0} ${lk.y0}L${wx} ${wy}`);
+          const el = document.elementFromPoint(e.clientX, e.clientY);
+          const node = el && el.closest && el.closest('.node');
+          if (lk.over && lk.over !== node) lk.over.classList.remove('droptarget');
+          lk.over = node && node.dataset.id !== lk.from ? node : null;
+          if (lk.over) lk.over.classList.add('droptarget');
+          return;
+        }
         if (!this.pointers.has(e.pointerId)) return;
         const prev = this.pointers.get(e.pointerId);
         const cur = { x: e.clientX, y: e.clientY };
@@ -210,6 +238,13 @@
         }
       });
       const end = (e) => {
+        const lk = this.linking;
+        if (lk && lk.id === e.pointerId) {
+          this.linking = null;
+          lk.line.remove();
+          if (lk.over) { lk.over.classList.remove('droptarget'); if (e.type === 'pointerup') this.h.connect(lk.from, lk.over.dataset.id); }
+          return;
+        }
         if (!this.pointers.has(e.pointerId)) return;
         this.pointers.delete(e.pointerId);
         svg.classList.remove('panning');
@@ -217,6 +252,8 @@
           const t = this.downTarget && this.downTarget.closest ? this.downTarget : null;
           const fold = t && t.closest('[data-fold]'), stub = t && t.closest('[data-stub]');
           if (fold) { this.h.fold && this.h.fold(fold.dataset.fold); return; }
+          const qa = t && t.closest('[data-qadd]');
+          if (qa) { this.h.qadd && this.h.qadd(qa.dataset.qadd, e.clientX, e.clientY); return; }
           if (stub) { this.h.stub && this.h.stub(stub.dataset.stub); return; }
           const node = t && t.closest('.node');
           const uline = this.downTarget && this.downTarget.closest && this.downTarget.closest('[data-union]');
