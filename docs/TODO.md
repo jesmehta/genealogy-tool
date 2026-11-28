@@ -14,6 +14,9 @@
 - [ ] Per-person sources/citations (currently: notes + custom fields).
 - [ ] Choose which union an untagged child belongs to directly in the person panel (the model supports
       `unionId`; the UI sets it only when a child is added through "+ Child" on a union).
+- [ ] Quick editing: "aunt / uncle", "niece / nephew" and "grandparent" in the + menu (with placeholder
+      links like sibling); "convert cousin bond to real links" once a common ancestor is known; undo
+      for menu and drag actions.
 - [ ] Timeline: per-person "born about" hints (e.g. "older than X") to steer estimates; a
       lifespan bar (birth→death) on each card; a time axis that stays pinned on screen while panning.
 - [ ] Missing data: research-status column (to ask / asked / confirmed), and exporting the gap list as CSV.
@@ -58,6 +61,14 @@
   that view (it would hide the person you're centred on) but still applies in the whole-family view.
 - **Branch legend rows open descendants of the first founder.** For a split branch ("X's line") that
   is X. For a couple it is the first-entered founder, with the partner included through the union.
+- **Sibling placeholders are real people.** "Parent of X" / "Other parent of X" are ordinary records
+  (name them, or delete them once the real parents are added and linked). Two siblings added from
+  different people before their parents are known get two different placeholder couples. Merge by
+  re-linking (there is no merge tool yet).
+- **Cousin bonds don't feed relationship naming.** The finder reports "connected" through them, not
+  "first cousin". They are drawn even with "other relationships" off.
+- **The tray's "main family"** is the component containing the focus person (tree view) or the
+  largest one (whole-family view), so the tray contents change with the focus.
 - **Bulk-edit undo is per session.** Snapshots live in memory. Reloading or switching project
   clears them, while the edits themselves are already saved.
 - **"Missing" is a rule, not a fact.** Death date/place count only for people ticked deceased.

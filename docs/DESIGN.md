@@ -122,6 +122,35 @@ are per project. Added families reset when the root changes.
 collapsing a whole branch into a single summary card (it would break the partner/child lines the
 layout draws).
 
+**Quick editing on the tree (0.5.0).**
+*The need:* transcribing a whiteboard means adding many people and wiring them up fast, often
+with groups that aren't connected yet ("otherwise they float"). The request: controls on each
+card to add a parent, child, partner, sibling or cousin; drag-and-connect between people; a sibling
+should create two parents and a marriage if none exist; a cousin should be a dotted link whose
+common ancestor is noted but not drawn, like the "other relationships" indicator.
+*What was built* (`js/connect.js`):
+- **+ on a card** (shown on hover or selection; on touch, on the selected card) opens a menu. Parent,
+  child, partner and other reuse the panel dialogs (pick an existing person or create one). Child
+  goes into the person's union when they have exactly one.
+- **Sibling:** if the person has kin parents, the new sibling gets the same ones (full), or one of
+  them (half). If they have none, two placeholders ("Parent of X", "Other parent of X") are created
+  with a marriage between them, and both children are linked to it. Placeholders carry a "To
+  confirm" field, so they show up in the Missing data tab. If the *other* person already has parents,
+  those are reused instead of making placeholders.
+- **Cousin:** an `others` entry with `kind: 'cousin'` (label "cousin" by default, editable), drawn
+  as a round-dotted line. Unlike other bonds, cousin lines are drawn even when "other
+  relationships" is off, because they stand in for a structural link. No placeholder grandparents
+  are made: the user asked for the common ancestor to be noted, not drawn. When the real
+  connection is found, add the parent links and delete the cousin bond.
+- **Drag to connect:** the ⇢ handle on a card's corner starts a rubber-band line (it doesn't pan).
+  Dropping on another card opens "A is the partner / parent / child / sibling / cousin / other of B".
+- **Not connected tray:** connected components over every link type. The component holding the
+  focus person (or the largest one) is "the family", and every other group is listed largest first,
+  so whiteboard clusters can be dragged in one person at a time. Pointer events are used, so touch
+  works too.
+The data format is unchanged except for the optional `kind` on an `others` entry (v1 files without
+it load as before).
+
 **Missing data tab (0.4.0).**
 *The need:* a family entered from a whiteboard is mostly names. Surnames, sex, dates and places
 need filling in, often the same value for many people (a whole branch shares a surname). The gaps

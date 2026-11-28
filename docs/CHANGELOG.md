@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 — 2026-11-28 — quick editing on the tree
+
+- **+** on every card (hover / selected): Parent · Child · Partner · Sibling · Cousin · Other bond ·
+  Open details.
+- **Sibling** reuses the person's parents (full or half). With no parents recorded, two
+  placeholder parents and a marriage are created.
+- **Cousin**: a dotted "cousin" bond (`others[].kind = 'cousin'`) with the common ancestor noted, not
+  drawn. Always visible.
+- **Drag to connect**: drag from a card's ⇢ corner onto another card and choose how they're related.
+- **Not connected** tray in the tree views lists people and groups not linked to the main family.
+  Drag them onto a card to connect.
+- Requirement and design: DESIGN.md, "Quick editing on the tree". Screenshots (local, git-ignored):
+  `review/after-connect/`.
+
 ## 0.4.0 — 2026-11-28 — missing data, siblings by age, expanded timeline
 
 - **Missing data** tab: every person in a table, empty fields highlighted and counted per column,
