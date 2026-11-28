@@ -33,7 +33,8 @@ JSON (data only) or ZIP (data + photos) to back up, move or share.
 | Other relations | Free-text label + notes (godparent, family friend, "like an aunt"…) |
 | Inferred | Full, half, adoptive and step siblings; grandparents and grand-children; step-parents/children; aunts and uncles (incl. by marriage); first cousins; nieces and nephews; in-laws |
 | Relationship finder | Any two people → "nth cousin m× removed", half-relations, in-law and step terms, closest common ancestor, and the shortest connection path. Optional "biological only" |
-| Views | **Focus tree** (hourglass around one person, generations adjustable) · **Whole family** graph · **People** table · **Relationship finder** |
+| Views | **Focus tree**, either *Centred on* one person (hourglass, generations adjustable) or *Descendants of* an ancestor (their whole line, nothing else) · **Whole family** graph · **People** table · **Relationship finder** |
+| Large families | Fold any branch into a "▸ +N" pill (saved with the project). A "▲ N" badge marks people whose own family is outside the view; click it to add that family. Click a family in the legend to open its descendants |
 | Projects | Several families side by side; switch, rename, notes, delete; a sample family to explore |
 | Export / import | `Export JSON` → `<family>_<YYYY-MM-DD_HHMM>.json`; `Export ZIP` → same name `.zip` with `data.json` + `photos/`. Importing either one asks whether to replace or copy if the family already exists |
 

@@ -85,6 +85,43 @@ layout doesn't know about couples. The engine (`layout.js`):
 The focus tree uses the same engine on a subset: ancestors up to N, descendants down to M, the
 focus person's siblings, descendants' partners, and optionally ancestors' other partners.
 
+**Scoped views for large families (0.3.0).**
+*The need.* The first real family entered (about 55 people transcribed from a whiteboard, with more
+disconnected groups still to come) made two limits obvious. The plan is to work backwards through the
+mothers and grandmothers and add *their* families. The focus view then needs ever more filters to
+stay readable, and the whole-family view becomes very wide. The request: "on selecting an ancestor,
+their whole tree is displayed, while the rest are not displayed / collapsed and minimised."
+
+*What was built.* There are three parts, and all of them only decide **which people go into the
+layout**. The layout engine is unchanged (`L.compute(prj, include)` already accepted a subset).
+`L.scope()` in `layout.js` produces that subset plus what to draw for the hidden parts:
+
+1. **Descendants of** (tree-tab mode next to *Centred on*). The set is the ancestor, every descendant
+   through any parent-link type, every partner of those people, and every other parent of their
+   children. The last group covers co-parents without a recorded union and adoptive/step parents.
+   Nothing above the ancestor and no in-law families are included. Double-click still re-roots, and
+   the panel and legend can open it too.
+2. **Folding.** Any card with children in view gets a ▾ toggle, visible on hover or selection
+   (always visible on touch screens). It hides that person's descendants and any partner left with
+   no connection, and leaves a "▸ +N" pill. Folded ids are stored in `project.collapsed`, so they
+   survive reloads and travel with exports. The data format stays at v1, because older files simply
+   lack the field. The focus person and their ancestor line can't be folded away. Folding applies
+   in every tree mode, including the whole-family view.
+3. **▲ badges for hidden families.** A person in view whose parents are outside the view, typically
+   someone married in, shows "▲ N". N counts their recorded ancestors and those ancestors'
+   descendants that aren't shown. Clicking adds that family (descendants of their topmost
+   ancestors) to the current view as a removable chip in the toolbar. The root of a *Descendants of*
+   view gets "▲ up" instead, which re-roots on their parent. In *Centred on* mode, the focus
+   person's own ancestor line gets no badge, because "generations up" already controls it.
+
+The legend's family branches are buttons that open *Descendants of* the branch's first founder, a
+one-click way to see "this family". Mode and generations are per browser (`localStorage`). Folds
+are per project. Added families reset when the root changes.
+
+*Rejected:* a separate "collapse" data structure per view (more state for little gain), and
+collapsing a whole branch into a single summary card (it would break the partner/child lines the
+layout draws).
+
 **Colour means family branch.** (Chosen over surname or sex; theme direction "botanical" chosen
 over "heirloom" and "bright modern".)
 A *founding family* is a set of kin parents with no kin parents of their own, together with their

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 — 2026-11-28 — scoped views for large families
+
+- **Descendants of**: a second tree mode beside *Centred on*. It shows one ancestor's whole line
+  (descendants, their partners, co-parents) and nobody else. Open it from the toolbar select, the
+  person panel ("Descendants of …"), or by clicking a family in the legend.
+- **Folding**: ▾ on a card (on hover/selection) or "Fold branch" in the panel hides that person's
+  descendants behind a "▸ +N" pill; click the pill to unfold. "Unfold all (n)" is in the toolbar.
+  Folds are saved with the project (`project.collapsed`) and work in the whole-family view too.
+- **▲ N badges** on people whose own family is outside the view. Clicking adds that family to the
+  view as a removable chip. On the root of a *Descendants of* view the badge reads "▲ up" and
+  re-roots on the parent.
+- Generation bands in *Descendants of* read "Generation n from *ancestor*".
+- Requirement and design: DESIGN.md, "Scoped views for large families". Screenshots (local, git-ignored):
+  `review/before-scope/`, `review/after-scope/`.
+
 ## 0.2.2 — 2026-11-27 — greener bar, paper texture
 
 - Top bar is now a forest-to-teal-green gradient (`--bar-grad`); the flat blue read as corporate.
