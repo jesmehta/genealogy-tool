@@ -21,13 +21,22 @@
       const tip = u ? U.esc(GT.model.label(GT.model.UNION_TYPES, u.type) + (u.start.date ? ', ' + u.start.date : '') +
         (u.end && u.end.reason ? ' — ended: ' + u.end.reason + (u.end.date ? ' ' + u.end.date : '') : '')) : 'Parents (no recorded relationship)';
       const dataAttr = u ? ` data-union="${u.id}"` : '';
-      if (f.adjacent && a.y === b.y) {
-        const y = a.y + H / 2;
-        edges.push(`<path class="${cls}"${dataAttr} d="M${a.x + W} ${y}H${b.x}"><title>${tip}</title></path>`);
-        if (u) edges.push(`<path class="uhit"${dataAttr} d="M${a.x + W} ${y}H${b.x}"><title>${tip}</title></path>`);
+      if (f.adjacent) {
+        const ya = a.y + H / 2, yb = b.y + H / 2, y = (ya + yb) / 2;
+        const d = `M${a.x + W} ${ya}L${b.x} ${yb}`;
+        edges.push(`<path class="${cls}"${dataAttr} d="${d}"><title>${tip}</title></path>`);
+        if (u) edges.push(`<path class="uhit"${dataAttr} d="${d}"><title>${tip}</title></path>`);
+        const mx = (a.x + W + b.x) / 2;
         if (u && /divorce|separation|annulment/.test(u.end && u.end.reason)) {
-          const mx = (a.x + W + b.x) / 2;
           marks.push(`<path class="umark" d="M${mx - 7} ${y + 7}l6 -14M${mx + 1} ${y + 7}l6 -14"/>`);
+        }
+        if (f.marriage) {
+          // timeline: a stem down to the partnership's start year, marked with a diamond
+          const lab = (f.marriage.est ? '≈ ' : '') + Math.floor(f.marriage.year);
+          const what = u ? GT.model.label(GT.model.UNION_TYPES, u.type) : 'Parents';
+          edges.push(`<path class="mstem" d="M${mx} ${y}V${f.jy}"/>`);
+          marks.push(`<g class="mmark${f.marriage.est ? ' est' : ''}"${dataAttr}><title>${U.esc(what + (f.marriage.est ? ', start estimated ≈ ' : ', from ') + Math.floor(f.marriage.year))}</title>` +
+            `<path d="M${mx} ${f.jy - 6}l6 6l-6 6l-6 -6z"/><text x="${mx + 10}" y="${f.jy + 4}">${lab}</text></g>`);
         }
       } else {
         const x1 = a.x + W / 2, x2 = b.x + W / 2, y1 = a.y, y2 = b.y;
@@ -108,6 +117,7 @@
       if (prj.isDeceased(p)) cls.push('deceased');
       if (n.id === opt.focusId) cls.push('focus');
       if (n.id === opt.selectedId) cls.push('selected');
+      if (n.est) cls.push('est');
       const style = brs.length ? ` style="--b:${brVar(brs[0])}"` : '';
       const thumb = p.photo && opt.thumbs.get(p.photo);
       const avatar = thumb
@@ -127,14 +137,23 @@
         (SEX_GLYPH[p.sex] ? `<text class="sx" x="${W - 14}" y="20">${SEX_GLYPH[p.sex]}</text>` : '') +
         `<text class="nm" x="66" y="24">${U.esc(trunc(given, 14))}</text>` +
         `<text class="sn" x="66" y="40">${U.esc(trunc(p.surname || '', 16))}</text>` +
-        `<text class="yr" x="66" y="55">${U.esc(trunc(prj.lifespan(p), 19))}</text>` +
+        `<text class="yr" x="66" y="55">${U.esc(trunc(prj.lifespan(p) || (n.est && n.year != null && lay.timeline && lay.timeline.hasDates ? '≈ b. ' + Math.floor(n.year) : ''), 19))}</text>` +
+        (n.trueY != null ? `<path class="truetick" d="M-10 ${n.trueY - n.y}H-2V8"><title>Moved down to make room; born ≈ ${Math.floor(n.year)}</title></path>` : '') +
         foldHTML(n.id) + stubHTML(n.id) +
         `</g>`);
     }
 
     // generation bands (world coordinates, scroll with the tree)
     const bands = [];
-    if (lay.rows) {
+    if (lay.timeline) {
+      const t = lay.timeline, x0 = -3000, w = lay.width + 6000;
+      const step = 10;
+      for (let yr = Math.floor(t.minYear / step) * step; yr <= t.maxYear + 30; yr += step) {
+        const y = t.toY(yr);
+        bands.push(`<path class="tgrid${yr % 50 === 0 ? ' major' : ''}" d="M${x0} ${y}H${x0 + w}"/>` +
+          (t.hasDates ? `<text class="bandlabel tyear" x="12" y="${y - 4}">${yr}</text>` : ''));
+      }
+    } else if (lay.rows) {
       const x0 = -3000, w = lay.width + 6000;
       for (let g = 0; g < lay.rows; g++) {
         const top = lay.rowY(g) - L.VGAP / 2;

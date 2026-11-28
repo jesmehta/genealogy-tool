@@ -14,6 +14,7 @@
     treeOpts: Object.assign({ mode: 'focus', up: 3, down: 3, siblings: true, partners: true, others: false }, U.storageGet('treeOpts', {})),
     extras: [],             // families added to the tree view from a ▲ badge: [{ id, roots }]
     graphOpts: Object.assign({ others: false }, U.storageGet('graphOpts', {})),
+    timeline: U.storageGet('timeline', false),   // expanded timeline (y = birth year) in both tree views
     pz: null,
     relate: { a: null, b: null, bioOnly: false },
   });
@@ -246,7 +247,8 @@
           : `<span>Everyone in <b>${esc(prj.name)}</b></span>` +
             `<label><input type="checkbox" data-gopt="others" ${g.others ? 'checked' : ''}> other relationships</label>` +
             `<label>Find <select data-act="jump"><option value="">—</option></select></label>`) +
-        `<span class="extras"></span><span class="spacer"></span><button class="btn small" data-act="add-person">+ Person</button></div>` +
+        `<label class="tltoggle" title="Expanded: births and partnerships placed by year. Collapsed: compact generations."><input type="checkbox" data-act="timeline" ${app.timeline ? 'checked' : ''}> Timeline</label>` +
+        `<span class="tlnote hint"></span><span class="extras"></span><span class="spacer"></span><button class="btn small" data-act="add-person">+ Person</button></div>` +
         `<svg class="tree" role="img" aria-label="Family tree"></svg>` +
         `<div class="zoomctl"><button class="btn" data-zoom="in" aria-label="Zoom in">+</button><button class="btn" data-zoom="out" aria-label="Zoom out">−</button><button class="btn" data-zoom="fit" aria-label="Fit to screen" title="Fit">⤢</button></div>` +
         legendHTML() + `</div>`;
@@ -279,7 +281,10 @@
     ex.innerHTML = (isTree ? app.extras.map((e, i) => `<span class="chip extra">+ ${esc(prj.person(e.id) ? (prj.person(e.id).given || prj.displayName(e.id)) : '?')}’s family` +
       `<button class="btn ghost" data-act="drop-extra" data-i="${i}" title="Remove from view" aria-label="Remove">✕</button></span>`).join('') : '') +
       (nFold ? `<button class="btn small" data-act="unfold-all" title="Unfold every folded branch">Unfold all (${nFold})</button>` : '');
-    const lay = L.compute(prj, sc.include);
+    const lay = L.compute(prj, sc.include, { timeline: app.timeline });
+    const tn = view.querySelector('.tlnote');
+    tn.textContent = !lay.timeline ? '' : !lay.timeline.hasDates ? 'No birth dates yet: positions are estimated from generations.'
+      : lay.timeline.anyEstimated ? '≈ = estimated from relatives' : '';
     app.lay = lay;
     const svg = view.querySelector('svg.tree');
     const br = app.br();
@@ -345,6 +350,10 @@
       `<div class="row">${line('oline')} Other relationship</div>` +
       `<div class="row"><svg viewBox="0 0 34 10"><rect x="2" y="1" width="30" height="8" rx="2" fill="none" stroke="currentColor" stroke-dasharray="4 2"/></svg> Deceased</div>` +
       `<div class="row"><span style="width:34px;text-align:center">♀ ♂ ⚧</span> Sex (blank if unknown)</div>` +
+      `<b class="lh">Timeline</b>` +
+      `<div class="row"><svg viewBox="0 0 34 14"><path class="mstem" d="M10 0V7"/><path class="mmarkl" d="M10 2l5 5l-5 5l-5 -5z"/></svg> Partnership start year (≈ = estimated)</div>` +
+      `<div class="row"><span style="width:34px;text-align:center;opacity:.6">▭</span> Faded card: birth year estimated</div>` +
+      `<div class="row"><svg viewBox="0 0 34 14"><path class="truetick" d="M8 2H14V12"/></svg> Card pushed down to make room; tick marks its year</div>` +
       `<b class="lh">Folding</b>` +
       `<div class="row"><span class="lg-pill">▸ +12</span> Folded branch, 12 people hidden: click to unfold</div>` +
       `<div class="row"><span class="lg-pill stubpill">▲ 23</span> Their own family is not in this view: click to add it</div>` +
@@ -556,6 +565,11 @@
       } else if (t.dataset.gopt) {
         app.graphOpts[t.dataset.gopt] = t.checked;
         U.storageSet('graphOpts', app.graphOpts);
+        renderView();
+      } else if (t.dataset.act === 'timeline') {
+        app.timeline = t.checked;
+        U.storageSet('timeline', app.timeline);
+        app.resetView = true;
         renderView();
       } else if (t.dataset.act === 'mode') {
         app.setTreeMode(t.value);

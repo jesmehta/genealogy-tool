@@ -136,8 +136,43 @@
     return { include: o.mode === 'all' && !hiddenBy.size ? null : inc, folds, stubs, canFold };
   };
 
+  /* ---------- timeline: birth years, known or estimated ---------- */
+  L.GEN_YEARS = 28;   // assumed parent → child gap when estimating
+  L.MARRY_AGE = 24;   // assumed age at a union's start when estimating
+  L.PX_YEAR = 6;      // vertical scale of the expanded timeline (28 years ≈ one compact row)
+
+  /* Known birth years from dates; everyone else estimated from relatives by repeated averaging:
+     parents (+28), children (−28), partners (same), a union's start date (−24). People with no
+     dated relative anywhere stay unresolved (the layout falls back to their generation). */
+  L.estimateYears = function (prj) {
+    const known = new Map();
+    prj.data.people.forEach((p) => { const y = U.year(p.birth.date); if (y != null) known.set(p.id, y); });
+    const est = new Map(known);
+    const G = L.GEN_YEARS;
+    for (let it = 0; it < 60; it++) {
+      let changed = false;
+      for (const p of prj.data.people) {
+        if (known.has(p.id)) continue;
+        const c = [];
+        prj.parentsOf(p.id).forEach((l) => { if (est.has(l.parent)) c.push(est.get(l.parent) + G); });
+        prj.childrenOf(p.id).forEach((l) => { if (est.has(l.child)) c.push(est.get(l.child) - G); });
+        prj.unionsOf(p.id).forEach((u) => {
+          const q = prj.partnerIn(u, p.id);
+          if (est.has(q)) c.push(est.get(q));
+          const sy = U.year(u.start.date);
+          if (sy != null) c.push(sy - L.MARRY_AGE);
+        });
+        if (!c.length) continue;
+        const v = c.reduce((a, b) => a + b, 0) / c.length;
+        if (!est.has(p.id) || Math.abs(est.get(p.id) - v) > 0.05) { est.set(p.id, v); changed = true; }
+      }
+      if (!changed) break;
+    }
+    return { est, known };
+  };
+
   /* ---------- main ---------- */
-  L.compute = function (prj, include) {
+  L.compute = function (prj, include, lo = {}) {
     const data = prj.data;
     const people = data.people.filter((p) => !include || include.has(p.id)).map((p) => p.id);
     const inc = new Set(people);
@@ -376,6 +411,29 @@
     const X = (id) => cx.get(id) - L.W / 2 - minX + pad;
     const Y = (id) => gen.get(id) * (L.H + L.VGAP) + pad;
     const nodes = people.map((id) => ({ id, x: X(id), y: Y(id), gen: gen.get(id) }));
+
+    /* expanded timeline: y from birth year instead of generation */
+    let tl = null;
+    if (lo.timeline) {
+      const G = L.GEN_YEARS;
+      const { est, known } = L.estimateYears(prj);
+      const res = people.filter((id) => est.has(id));
+      const ref = res.length ? res.reduce((s, id) => s + est.get(id) - gen.get(id) * G, 0) / res.length : 1900;
+      const yr = new Map(people.map((id) => [id, est.has(id) ? est.get(id) : ref + gen.get(id) * G]));
+      const minYear = Math.min(...yr.values());
+      const toY = (y) => (y - minYear) * L.PX_YEAR + pad;
+      nodes.forEach((n) => { n.y = toY(yr.get(n.id)); n.year = yr.get(n.id); n.est = !known.has(n.id); });
+      // cards from different generations can meet (an aunt 3 years older than her niece):
+      // push the later card down just enough to clear, and remember where it belongs
+      const placed = [];
+      nodes.slice().sort((a, b) => a.y - b.y || a.x - b.x).forEach((n) => {
+        let y = n.y, hit;
+        while ((hit = placed.find((m) => Math.abs(m.x - n.x) < L.W + 8 && y < m.y + L.H + 8 && y + L.H + 8 > m.y))) y = hit.y + L.H + 8;
+        if (y !== n.y) { n.trueY = n.y; n.y = y; }
+        placed.push(n);
+      });
+      tl = { minYear, maxYear: Math.max(...yr.values()), toY, hasDates: known.size > 0, anyEstimated: nodes.some((n) => n.est) };
+    }
     const pos = new Map(nodes.map((n) => [n.id, n]));
     const slot = new Map(); // person → [layer, index within layer]
     blocksByLayer.forEach((blocks, g) => {
@@ -387,9 +445,19 @@
     const outFams = famList.map((f) => {
       const ps = f.parents.map((p) => pos.get(p));
       const jx = ps.reduce((s, p) => s + p.x + L.W / 2, 0) / ps.length;
-      const adjacent = ps.length === 2 && Math.abs(slot.get(f.parents[0])[1] - slot.get(f.parents[1])[1]) === 1 && ps[0].y === ps[1].y;
-      const jy = ps.length === 2 && ps[0].y === ps[1].y ? ps[0].y + L.H / 2 : Math.max(...ps.map((p) => p.y)) + L.H;
-      return { key: f.key, union: f.union, parents: f.parents, children: f.children, jx, jy, adjacent };
+      const sameRow = ps.length === 2 && slot.get(f.parents[0])[0] === slot.get(f.parents[1])[0];
+      const adjacent = ps.length === 2 && Math.abs(slot.get(f.parents[0])[1] - slot.get(f.parents[1])[1]) === 1 && (tl ? sameRow : ps[0].y === ps[1].y);
+      let jy = ps.length === 2 && ps[0].y === ps[1].y ? ps[0].y + L.H / 2 : Math.max(...ps.map((p) => p.y)) + L.H;
+      let marriage = null;
+      if (tl && adjacent) {
+        // the partnership marker sits at the union's start year (known, or estimated)
+        const sy = f.union && U.year(f.union.start.date);
+        const kids = f.children.map((c) => pos.get(c.id).year).filter((v) => v != null);
+        const year = sy != null ? sy : kids.length ? Math.min(...kids) - 1 : Math.max(...ps.map((p) => p.year)) + L.MARRY_AGE;
+        jy = Math.max(tl.toY(year), Math.max(...ps.map((p) => p.y)) + L.H + 10);
+        marriage = { year, est: sy == null };
+      }
+      return { key: f.key, union: f.union, parents: f.parents, children: f.children, jx, jy, adjacent, marriage };
     });
     const byGap = new Map();
     outFams.forEach((f) => {
@@ -398,7 +466,8 @@
       f.childTop = top;
       push(byGap, top, f);
     });
-    byGap.forEach((list, top) => {
+    if (tl) byGap.forEach((list, top) => list.forEach((f, i) => { f.busY = top - 14 - (i % 3) * 4; }));
+    else byGap.forEach((list, top) => {
       list.sort((a, b) => a.jx - b.jx);
       const n = list.length, step = n > 1 ? Math.min(14, (L.VGAP - 30) / (n - 1)) : 0;
       list.forEach((f, i) => { f.busY = top - L.VGAP / 2 - ((n - 1) * step) / 2 + i * step; });
@@ -406,10 +475,11 @@
 
     return {
       nodes, pos, slot, families: outFams,
-      rows: maxG + 1,
+      rows: tl ? 0 : maxG + 1,
       rowY: (g) => g * (L.H + L.VGAP) + pad,
       width: maxX - minX + pad * 2,
-      height: (maxG + 1) * (L.H + L.VGAP) - L.VGAP + pad * 2,
+      height: tl ? Math.max(...nodes.map((n) => n.y), 0) + L.H + pad + 30 : (maxG + 1) * (L.H + L.VGAP) - L.VGAP + pad * 2,
+      timeline: tl,
     };
   };
 
